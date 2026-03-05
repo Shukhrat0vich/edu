@@ -41,17 +41,15 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Logging
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': '/var/log/edu_analytics/error.log',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
     },
-    'root': {
-        'handlers': ['file'],
-        'level': 'ERROR',
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
     },
 }
