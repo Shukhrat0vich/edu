@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Performance Heatmap{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'analytics:overview' %}">Analytics</a></li>
+<li class="breadcrumb-item active">Heatmap</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-grid-3x3 me-2 text-primary"></i>Performance Heatmap</h1>
+  <p class="page-subtitle">Student × Subject score matrix — top 20 students × top 10 subjects</p>
+</div>
+
+<div class="data-card">
+  <div class="data-card-header">
+    <h5><i class="bi bi-table me-2"></i>Score Heatmap</h5>
+    <div class="d-flex align-items-center gap-2 small">
+      <span class="heatmap-legend danger">0–49</span>
+      <span class="heatmap-legend warning">50–69</span>
+      <span class="heatmap-legend good">70–79</span>
+      <span class="heatmap-legend great">80–89</span>
+      <span class="heatmap-legend excellent">90–100</span>
+    </div>
+  </div>
+
+  <div id="heatmapContainer" class="p-3 overflow-auto">
+    <div class="text-center text-muted py-4">
+      <div class="spinner-border" role="status"></div>
+      <p class="mt-2">Building heatmap...</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const heatmapData = {{ heatmap_json|safe }};
+
+function getColor(val) {
+  if (val === null) return '#f1f5f9';
+  if (val < 50) return '#fee2e2';
+  if (val < 70) return '#fef3c7';
+  if (val < 80) return '#d1fae5';
+  if (val < 90) return '#a7f3d0';
+  return '#6ee7b7';
+}
+
+function getTextColor(val) {
+  if (val === null) return '#94a3b8';
+  if (val < 50) return '#991b1b';
+  if (val < 70) return '#92400e';
+  return '#065f46';
+}
+
+function buildHeatmap() {
+  const { students, subjects, matrix } = heatmapData;
+  if (!students.length || !subjects.length) {
+    document.getElementById('heatmapContainer').innerHTML =
+      '<p class="text-center text-muted py-4">No data available to build heatmap.</p>';
+    return;
+  }
+
+  let html = '<div style="overflow-x:auto"><table class="table table-bordered table-sm heatmap-table">';
+
+  // Header row
+  html += '<thead><tr><th style="min-width:150px;position:sticky;left:0;background:#1e293b;color:#fff">Student</th>';
+  subjects.forEach(s => {
+    html += `<th style="min-width:90px;font-size:11px;text-align:center;background:#1e293b;color:#fff;writing-mode:vertical-lr;height:100px">${s}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Data rows
+  matrix.forEach((row, i) => {
+    html += `<tr><td style="position:sticky;left:0;background:#f8fafc;font-size:12px;font-weight:600;white-space:nowrap">${students[i]}</td>`;
+    row.forEach(val => {
+      const bg = getColor(val);
+      const tc = getTextColor(val);
+      const display = val !== null ? val.toFixed(1) : '—';
+      html += `<td style="background:${bg};color:${tc};text-align:center;font-size:12px;font-weight:600;padding:4px">${display}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('heatmapContainer').innerHTML = html;
+}
+
+buildHeatmap();
+</script>
+{% endblock %}

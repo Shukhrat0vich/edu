@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Admin Dashboard</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Dashboard</h1>
+  <p class="page-subtitle">System-wide performance overview</p>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.total_students }}</div>
+        <div class="kpi-label">Total Students</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="bi bi-mortarboard-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_gpa }}</div>
+        <div class="kpi-label">Average GPA</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.at_risk_count }}</div>
+        <div class="kpi-label">At-Risk Students</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-purple">
+      <div class="kpi-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_attendance }}%</div>
+        <div class="kpi-label">Avg Attendance</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Secondary KPI Row ──────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-mini">
+      <i class="bi bi-person-badge text-info"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_teachers }}</div>
+        <div class="stat-mini-label">Teachers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini">
+      <i class="bi bi-book text-warning"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_subjects }}</div>
+        <div class="stat-mini-label">Subjects</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini">
+      <i class="bi bi-clipboard-data text-success"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_grades }}</div>
+        <div class="stat-mini-label">Grade Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini">
+      <i class="bi bi-bar-chart text-primary"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.avg_score }}</div>
+        <div class="stat-mini-label">Avg Score</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row 1 ───────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <!-- Subject Performance -->
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Performance</h5>
+        <a href="{% url 'analytics:overview' %}" class="btn btn-sm btn-outline-primary">
+          View All <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <canvas id="subjectChart" height="120"></canvas>
+    </div>
+  </div>
+
+  <!-- Grade Distribution Pie -->
+  <div class="col-12 col-xl-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-pie-chart-fill me-2 text-success"></i>Grade Distribution</h5>
+      </div>
+      <canvas id="gradeDistChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row 2 ───────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <!-- Score Distribution -->
+  <div class="col-12 col-md-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-distribute-horizontal me-2 text-info"></i>Score Distribution</h5>
+      </div>
+      <canvas id="scoreDistChart" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- Attendance by Faculty -->
+  <div class="col-12 col-md-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-calendar3 me-2 text-warning"></i>Attendance by Faculty</h5>
+      </div>
+      <canvas id="attendanceChart" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Top Students & At-Risk ─────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <!-- Top Students -->
+  <div class="col-12 col-xl-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-trophy-fill me-2 text-warning"></i>Top Students</h5>
+        <a href="{% url 'dashboard:student_list' %}" class="btn btn-sm btn-outline-warning">
+          View All
+        </a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Faculty</th><th>GPA</th><th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in top_students %}
+            <tr>
+              <td>
+                {% if s.rank == 1 %}<span class="badge bg-warning text-dark">🥇 1</span>
+                {% elif s.rank == 2 %}<span class="badge bg-secondary">🥈 2</span>
+                {% elif s.rank == 3 %}<span class="badge bg-danger">🥉 3</span>
+                {% else %}<span class="text-muted">{{ s.rank }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'dashboard:student_detail' s.student_id %}" class="text-decoration-none fw-semibold">
+                  {{ s.full_name }}
+                </a>
+              </td>
+              <td><small class="text-muted">{{ s.faculty }}</small></td>
+              <td><span class="badge bg-success">{{ s.gpa }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px">
+                    <div class="progress-bar bg-success" style="width:{{ s.avg_score }}%"></div>
+                  </div>
+                  <small>{{ s.avg_score }}</small>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No data available</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- At-Risk Students -->
+  <div class="col-12 col-xl-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-exclamation-diamond-fill me-2 text-danger"></i>At-Risk Students</h5>
+        <span class="badge bg-danger">{{ summary.at_risk_count }} total</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr><th>Name</th><th>Faculty</th><th>GPA</th><th>Avg Score</th></tr>
+          </thead>
+          <tbody>
+            {% for s in at_risk %}
+            <tr class="table-danger-soft">
+              <td>
+                <a href="{% url 'dashboard:student_detail' s.student_id %}" class="text-decoration-none">
+                  <i class="bi bi-exclamation-triangle text-danger me-1"></i>{{ s.full_name }}
+                </a>
+              </td>
+              <td><small>{{ s.faculty }}</small></td>
+              <td><span class="badge bg-danger">{{ s.gpa }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px">
+                    <div class="progress-bar bg-danger" style="width:{{ s.avg_score }}%"></div>
+                  </div>
+                  <small class="text-danger">{{ s.avg_score }}</small>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">
+              <i class="bi bi-check-circle text-success me-1"></i>No at-risk students — great!
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subjectPerf = {{ subject_perf_json|safe }};
+const scoreDist = {{ score_dist_json|safe }};
+const gradeDistRaw = {{ grade_dist_json|safe }};
+const attendanceTrends = {{ attendance_trends_json|safe }};
+
+// Subject Performance Bar Chart
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectPerf.slice(0, 10).map(s => s.subject_name),
+    datasets: [{
+      label: 'Avg Score',
+      data: subjectPerf.slice(0, 10).map(s => s.avg_score),
+      backgroundColor: subjectPerf.slice(0, 10).map(s =>
+        s.avg_score >= 70 ? 'rgba(16,185,129,0.8)' :
+        s.avg_score >= 50 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)'
+      ),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Grade Distribution Pie
+new Chart(document.getElementById('gradeDistChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(gradeDistRaw),
+    datasets: [{
+      data: Object.values(gradeDistRaw),
+      backgroundColor: ['#10B981','#3B82F6','#F59E0B','#8B5CF6','#EF4444'],
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    cutout: '65%',
+  }
+});
+
+// Score Distribution Histogram
+new Chart(document.getElementById('scoreDistChart'), {
+  type: 'bar',
+  data: {
+    labels: scoreDist.map(b => b.range),
+    datasets: [{
+      label: 'Students',
+      data: scoreDist.map(b => b.count),
+      backgroundColor: 'rgba(99,102,241,0.7)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Attendance by Faculty
+new Chart(document.getElementById('attendanceChart'), {
+  type: 'bar',
+  data: {
+    labels: attendanceTrends.map(a => a.faculty),
+    datasets: [{
+      label: 'Avg Attendance %',
+      data: attendanceTrends.map(a => a.avg_attendance),
+      backgroundColor: 'rgba(245,158,11,0.75)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

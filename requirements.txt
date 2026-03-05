@@ -1,0 +1,33 @@
+# ── Core ──────────────────────────────────────────────────────────────────────
+Django==4.2.9
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+django-filter==23.5
+
+# ── Database ───────────────────────────────────────────────────────────────────
+psycopg2-binary==2.9.9
+
+# ── Data Science ──────────────────────────────────────────────────────────────
+pandas==2.1.4
+numpy==1.26.3
+scikit-learn==1.4.0
+scipy==1.11.4
+
+# ── Export ────────────────────────────────────────────────────────────────────
+openpyxl==3.1.2
+reportlab==4.0.9
+Pillow==10.2.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-decouple==3.8
+gunicorn==21.2.0
+whitenoise==6.6.0
+celery==5.3.4
+redis==5.0.1
+
+# ── Development ───────────────────────────────────────────────────────────────
+Faker==22.0.0
+factory-boy==3.3.0
+
+python-dotenv

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">My Dashboard</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-person-circle me-2 text-success"></i>My Performance</h1>
+  <p class="page-subtitle">{{ student.full_name }} — {{ student.faculty }} · {{ student.group }}</p>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card {% if summary.gpa >= 3.0 %}kpi-green{% elif summary.gpa >= 2.0 %}kpi-blue{% else %}kpi-red{% endif %}">
+      <div class="kpi-icon"><i class="bi bi-award-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.gpa }}</div>
+        <div class="kpi-label">My GPA</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="bi bi-graph-up"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_score }}</div>
+        <div class="kpi-label">Average Score</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="bi bi-star-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.best_score }}</div>
+        <div class="kpi-label">Best Score</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card {% if summary.at_risk %}kpi-red{% else %}kpi-purple{% endif %}">
+      <div class="kpi-icon">
+        <i class="bi bi-{% if summary.at_risk %}exclamation-triangle-fill{% else %}shield-check-fill{% endif %}"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value">{% if summary.at_risk %}⚠️ At Risk{% else %}✅ Safe{% endif %}</div>
+        <div class="kpi-label">Risk Status</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if summary.at_risk %}
+<div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+  <div>
+    <strong>Academic Risk Alert!</strong> Your performance indicates you may be at risk of failing.
+    Please contact your advisor or use the <a href="{% url 'dashboard:predict' %}" class="alert-link">ML Prediction tool</a>
+    to understand what improvements are needed.
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Charts ─────────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Performance by Subject</h5>
+      </div>
+      <canvas id="subjectChart" height="130"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-radar me-2 text-info"></i>Score Breakdown</h5>
+      </div>
+      <canvas id="radarChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── ML Prediction Card ─────────────────────────────────────────────────── -->
+{% if prediction %}
+<div class="prediction-card mb-4">
+  <div class="prediction-header">
+    <h5><i class="bi bi-cpu-fill me-2"></i>ML Performance Prediction</h5>
+    <small>Based on your current attendance and midterm performance</small>
+  </div>
+  <div class="prediction-body">
+    <div class="prediction-score">
+      <div class="score-circle {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}">
+        {{ prediction.predicted_final }}
+      </div>
+      <div>
+        <div class="prediction-label">Predicted Final Score</div>
+        <div class="risk-badge risk-{{ prediction.risk_level }}">{{ prediction.risk_label }}</div>
+      </div>
+    </div>
+    <div class="prediction-details">
+      <div class="pred-detail">
+        <span>Predicted Total</span>
+        <strong>{{ prediction.predicted_total_score }}</strong>
+      </div>
+      <div class="pred-detail">
+        <span>Based on Attendance</span>
+        <strong>{{ prediction.input.attendance }}%</strong>
+      </div>
+      <div class="pred-detail">
+        <span>Based on Midterm</span>
+        <strong>{{ prediction.input.midterm }}</strong>
+      </div>
+    </div>
+  </div>
+  <div class="text-end mt-2">
+    <a href="{% url 'dashboard:predict' %}" class="btn btn-sm btn-outline-primary">
+      <i class="bi bi-sliders me-1"></i>Try Custom Prediction
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Grades Table ────────────────────────────────────────────────────────── -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5><i class="bi bi-table me-2 text-primary"></i>My Grades</h5>
+    <span class="badge bg-secondary">{{ summary.subject_count }} subjects</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Subject</th><th>Midterm</th><th>Final</th><th>Attendance</th><th>Total Score</th><th>Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in summary.subjects %}
+        <tr>
+          <td class="fw-semibold">{{ s.subject }}</td>
+          <td>{{ s.midterm|floatformat:1 }}</td>
+          <td>{{ s.final|floatformat:1 }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress" style="width:70px;height:6px">
+                <div class="progress-bar {% if s.attendance >= 75 %}bg-success{% else %}bg-warning{% endif %}"
+                     style="width:{{ s.attendance }}%"></div>
+              </div>
+              <small>{{ s.attendance|floatformat:0 }}%</small>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px">
+                <div class="progress-bar {% if s.total_score >= 70 %}bg-success{% elif s.total_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width:{{ s.total_score }}%"></div>
+              </div>
+              <strong>{{ s.total_score|floatformat:1 }}</strong>
+            </div>
+          </td>
+          <td>
+            <span class="badge fs-6 {% if s.letter == 'A' %}bg-success{% elif s.letter == 'B' %}bg-primary{% elif s.letter == 'C' %}bg-info text-dark{% elif s.letter == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+              {{ s.letter }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subjectData = {{ subjects_json|safe }};
+
+// Performance Bar Chart
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectData.map(s => s.subject),
+    datasets: [
+      {
+        label: 'Midterm',
+        data: subjectData.map(s => s.midterm),
+        backgroundColor: 'rgba(59,130,246,0.7)',
+        borderRadius: 4,
+      },
+      {
+        label: 'Final',
+        data: subjectData.map(s => s.final),
+        backgroundColor: 'rgba(16,185,129,0.7)',
+        borderRadius: 4,
+      },
+      {
+        label: 'Total',
+        data: subjectData.map(s => s.total_score),
+        backgroundColor: 'rgba(139,92,246,0.7)',
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Radar Chart
+if (subjectData.length > 0) {
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: subjectData.slice(0,6).map(s => s.subject.substring(0,10)),
+      datasets: [{
+        label: 'Total Score',
+        data: subjectData.slice(0,6).map(s => s.total_score),
+        fill: true,
+        backgroundColor: 'rgba(99,102,241,0.2)',
+        borderColor: 'rgba(99,102,241,0.8)',
+        pointBackgroundColor: 'rgba(99,102,241,0.8)',
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } },
+    }
+  });
+}
+</script>
+{% endblock %}

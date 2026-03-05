@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Analytics Overview{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'analytics:overview' %}">Analytics</a></li>
+<li class="breadcrumb-item active">Overview</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-graph-up me-2 text-primary"></i>Analytics Overview</h1>
+    <p class="page-subtitle">Statistical analysis of student performance</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'analytics:export_excel' %}" class="btn btn-outline-success">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+    </a>
+    <a href="{% url 'analytics:export_pdf' %}" class="btn btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+  </div>
+</div>
+
+<!-- Descriptive Stats -->
+{% if stats %}
+<div class="row g-3 mb-4">
+  {% for key, val in stats.items %}
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="stat-card">
+      <div class="stat-label">{{ key|title }}</div>
+      <div class="stat-value">{{ val }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart me-2 text-primary"></i>Subject Average Scores</h5>
+      </div>
+      <canvas id="subjectChart" height="130"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-distribute-horizontal me-2 text-info"></i>Score Distribution</h5>
+      </div>
+      <canvas id="scoreDistChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Performance Table -->
+<div class="data-card mb-4">
+  <div class="data-card-header">
+    <h5><i class="bi bi-table me-2 text-primary"></i>Subject Performance Details</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Subject</th><th>Teacher</th><th>Credits</th>
+          <th>Avg Score</th><th>Std Dev</th><th>Pass Rate</th><th>Students</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in subject_performance %}
+        <tr>
+          <td class="fw-semibold">{{ s.subject_name }}</td>
+          <td class="text-muted small">{{ s.teacher }}</td>
+          <td><span class="badge bg-secondary">{{ s.credit }}</span></td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress" style="width:80px;height:6px">
+                <div class="progress-bar {% if s.avg_score >= 70 %}bg-success{% elif s.avg_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width:{{ s.avg_score }}%"></div>
+              </div>
+              <span>{{ s.avg_score }}</span>
+            </div>
+          </td>
+          <td class="text-muted">± {{ s.std_score }}</td>
+          <td>
+            <span class="badge {% if s.pass_rate >= 80 %}bg-success{% elif s.pass_rate >= 60 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+              {{ s.pass_rate }}%
+            </span>
+          </td>
+          <td>{{ s.total_students }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Top Students -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5><i class="bi bi-trophy me-2 text-warning"></i>Top 10 Students</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead><tr><th>#</th><th>Name</th><th>Faculty</th><th>GPA</th><th>Avg Score</th></tr></thead>
+      <tbody>
+        {% for s in top_students %}
+        <tr>
+          <td><span class="fw-bold text-{{ forloop.counter|yesno:'warning,secondary,danger,muted,muted,muted,muted,muted,muted,muted' }}">{{ s.rank }}</span></td>
+          <td><a href="{% url 'dashboard:student_detail' s.student_id %}" class="fw-semibold text-decoration-none">{{ s.full_name }}</a></td>
+          <td class="text-muted small">{{ s.faculty }}</td>
+          <td><span class="badge bg-success">{{ s.gpa }}</span></td>
+          <td>{{ s.avg_score }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subjectPerf = {{ subject_perf_json|safe }};
+const scoreDist = {{ score_distribution_json|safe }};
+
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectPerf.map(s => s.subject_name),
+    datasets: [{
+      label: 'Avg Score',
+      data: subjectPerf.map(s => s.avg_score),
+      backgroundColor: subjectPerf.map(s =>
+        s.avg_score >= 70 ? 'rgba(16,185,129,0.8)' :
+        s.avg_score >= 50 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)'
+      ),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100 },
+      x: { ticks: { maxRotation: 45 } }
+    }
+  }
+});
+
+new Chart(document.getElementById('scoreDistChart'), {
+  type: 'bar',
+  data: {
+    labels: scoreDist.map(b => b.range),
+    datasets: [{
+      label: 'Students',
+      data: scoreDist.map(b => b.count),
+      backgroundColor: 'rgba(99,102,241,0.7)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true }, x: { ticks: { maxRotation: 45 } } }
+  }
+});
+</script>
+{% endblock %}
