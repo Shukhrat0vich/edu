@@ -31,3 +31,4 @@ Faker==22.0.0
 factory-boy==3.3.0
 
 python-dotenv
+dj-database-url

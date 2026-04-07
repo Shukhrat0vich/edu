@@ -1,3 +1,12 @@
+import dj_database_url
+import os
+
+DATABASES = {
+    'default': dj_database_url.parse(
+        os.environ.get("postgresql://edu_db_0b15_user:ODio6I2zrFsoU9jnWgsH0HWWbvNM0wCG@dpg-d7ah8jvkijhs73alsj80-a/edu_db_0b15")
+    )
+}
+
 """
 Production settings for EduAnalytics.
 """
