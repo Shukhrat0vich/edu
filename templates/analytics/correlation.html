@@ -7,8 +7,13 @@
 
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title"><i class="bi bi-table me-2 text-info"></i>Correlation Matrix</h1>
-  <p class="page-subtitle">Pearson correlation between attendance, midterm, final, and total score</p>
+  <div>
+    <h1 class="page-title"><i class="bi bi-table me-2 text-info"></i>Correlation Matrix</h1>
+    <p class="page-subtitle">Pearson correlation between attendance, midterm, final, and total score</p>
+  </div>
+  <a href="{% url 'dashboard:admin' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
 </div>
 
 <div class="row g-4">

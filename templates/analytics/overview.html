@@ -12,6 +12,9 @@
     <p class="page-subtitle">Statistical analysis of student performance</p>
   </div>
   <div class="d-flex gap-2">
+    <a href="{% url 'dashboard:admin' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </a>
     <a href="{% url 'analytics:export_excel' %}" class="btn btn-outline-success">
       <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
     </a>

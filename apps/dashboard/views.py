@@ -9,7 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count as DjCount
 
 from apps.users.models import UserRole
 from apps.academics.models import Student, Teacher, Subject, Grade, Attendance
@@ -52,9 +52,22 @@ class AdminDashboardView(View):
         summary = AnalyticsService.get_admin_summary()
         top_students = AnalyticsService.get_top_students(limit=5)
         at_risk = AnalyticsService.get_at_risk_students()[:5]
+        all_at_risk = AnalyticsService.get_at_risk_students()
+        all_students = AnalyticsService.get_top_students(limit=1000)
         subject_perf = AnalyticsService.get_subject_performance()[:8]
+        all_subjects = AnalyticsService.get_subject_performance()
         attendance_trends = AnalyticsService.get_attendance_trends()
         score_dist = AnalyticsService.get_score_distribution()
+
+        teachers = Teacher.objects.select_related('user').annotate(
+            subject_count=DjCount('subjects')
+        ).all()
+        teachers_data = [{
+            'name': t.user.full_name,
+            'department': t.department,
+            'experience': t.experience_years,
+            'subjects': t.subject_count,
+        } for t in teachers]
 
         context = {
             'summary': summary,
@@ -65,6 +78,10 @@ class AdminDashboardView(View):
             'attendance_trends_json': json.dumps(attendance_trends),
             'score_dist_json': json.dumps(score_dist),
             'grade_dist_json': json.dumps(summary.get('grade_distribution', {})),
+            'all_at_risk_json': json.dumps(all_at_risk),
+            'all_students_json': json.dumps(all_students),
+            'all_subjects_json': json.dumps(all_subjects),
+            'teachers_json': json.dumps(teachers_data),
         }
         return render(request, self.template_name, context)
 

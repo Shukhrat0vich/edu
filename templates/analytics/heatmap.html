@@ -7,8 +7,13 @@
 
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title"><i class="bi bi-grid-3x3 me-2 text-primary"></i>Performance Heatmap</h1>
-  <p class="page-subtitle">Student × Subject score matrix — top 20 students × top 10 subjects</p>
+  <div>
+    <h1 class="page-title"><i class="bi bi-grid-3x3 me-2 text-primary"></i>Performance Heatmap</h1>
+    <p class="page-subtitle">Student × Subject score matrix — top 20 students × top 10 subjects</p>
+  </div>
+  <a href="{% url 'dashboard:admin' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
 </div>
 
 <div class="data-card">
