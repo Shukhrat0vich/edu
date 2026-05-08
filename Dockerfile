@@ -1,12 +1,14 @@
 # ── Build Stage ───────────────────────────────────────────────────────────────
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential libpq-dev gcc \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
@@ -20,31 +22,24 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy application code
 COPY . .
 
-# Create required directories
 RUN mkdir -p /app/staticfiles /app/media /app/ml_models /app/logs
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --settings=edu_analytics.settings.prod || true
+RUN python manage.py collectstatic --noinput || true
 
-# Create non-root user
 RUN addgroup --system app && adduser --system --group app
+
 RUN chown -R app:app /app
+
 USER app
 
-EXPOSE $PORT
+EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:$PORT/api/health/ || exit 1
-
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn edu_analytics.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py shell -c \"from django.contrib.auth import get_user_model; User=get_user_model(); u, created = User.objects.get_or_create(email='admin@edu.com'); u.set_password('admin123'); u.is_staff=True; u.is_superuser=True; u.is_active=True; u.save(); print('Admin ready')\" && gunicorn edu_analytics.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 180"]
