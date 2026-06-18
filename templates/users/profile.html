@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Profile</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-person-circle me-2 text-primary"></i>My Profile</h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-md-4">
+    <div class="data-card text-center p-4">
+      <div class="avatar-xl mx-auto mb-3">{{ user.full_name|first|upper }}</div>
+      <h4>{{ user.full_name }}</h4>
+      <p class="text-muted">{{ user.email }}</p>
+      <span class="badge role-badge-{{ user.role|lower }} px-3 py-2 fs-6">{{ user.role }}</span>
+      {% if profile %}
+      <hr>
+      {% if user.is_student %}
+      <div class="text-start small">
+        <div class="mb-1"><strong>Faculty:</strong> {{ profile.faculty }}</div>
+        <div class="mb-1"><strong>Group:</strong> {{ profile.group }}</div>
+        <div><strong>Enrolled:</strong> {{ profile.enrollment_year }}</div>
+      </div>
+      {% elif user.is_teacher %}
+      <div class="text-start small">
+        <div class="mb-1"><strong>Department:</strong> {{ profile.department }}</div>
+        <div><strong>Experience:</strong> {{ profile.experience_years }} years</div>
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-md-8">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-pencil-square me-2"></i>Edit Profile</h5>
+      </div>
+      <form method="post" class="p-3">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Full Name</label>
+          <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Email</label>
+          <input type="email" class="form-control" value="{{ user.email }}" disabled>
+          <div class="form-text">Email cannot be changed.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Role</label>
+          <input type="text" class="form-control" value="{{ user.role }}" disabled>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Save Changes
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

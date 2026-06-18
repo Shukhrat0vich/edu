@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% block title %}Teacher Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Teacher Dashboard</li>{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h1 class="page-title"><i class="bi bi-person-badge me-2 text-info"></i>Teacher Dashboard</h1>
+    <p class="page-subtitle">Welcome back, <strong>{{ teacher.full_name }}</strong> — {{ teacher.department }}</p>
+  </div>
+  <a href="{% url 'dashboard:student_list' %}" class="btn btn-primary btn-sm">
+    <i class="bi bi-people me-1"></i>All Students
+  </a>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-xl-3">
+    <a href="#subjects-section" class="text-decoration-none">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="bi bi-book-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ summary.subject_count }}</div>
+          <div class="kpi-label">My Subjects</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{% url 'dashboard:student_list' %}" class="text-decoration-none">
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ summary.student_count }}</div>
+          <div class="kpi-label">Students</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="#subjects-section" class="text-decoration-none">
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-icon"><i class="bi bi-bar-chart-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ summary.avg_score }}</div>
+          <div class="kpi-label">Average Score</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="#at-risk-section" class="text-decoration-none">
+      <div class="kpi-card kpi-red">
+        <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-value">{{ summary.at_risk_count }}</div>
+          <div class="kpi-label">At-Risk Students</div>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- ── Subject Performance Chart + At-Risk ────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-7">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart-steps me-2 text-primary"></i>My Subject Averages</h5>
+      </div>
+      <canvas id="subjectChart" height="140"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-5" id="at-risk-section">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <h5><i class="bi bi-exclamation-diamond-fill me-2 text-danger"></i>At-Risk Students</h5>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Student</th><th>Subject</th><th>Score</th><th></th></tr></thead>
+          <tbody>
+            {% for g in at_risk_grades %}
+            <tr>
+              <td>
+                <a href="{% url 'dashboard:student_detail' g.student.id %}" class="text-decoration-none">
+                  {{ g.student.full_name }}
+                </a>
+              </td>
+              <td><small>{{ g.subject.name }}</small></td>
+              <td><span class="badge bg-danger">{{ g.total_score|floatformat:1 }}</span></td>
+              <td>
+                <button class="btn btn-xs btn-outline-warning py-0 px-1"
+                        onclick="openEditModal({{ g.pk }}, '{{ g.student.full_name|escapejs }}', {{ g.midterm }}, {{ g.final }}, {{ g.attendance }})"
+                        title="Edit grade">
+                  <i class="bi bi-pencil"></i>
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">
+              <i class="bi bi-check-circle text-success me-1"></i>No at-risk students
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Subjects Detail ────────────────────────────────────────────────────── -->
+<div id="subjects-section">
+{% for data in subject_data %}
+<div class="data-card mb-4" id="subject-{{ data.subject.pk }}">
+  <div class="data-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <h5 class="mb-0"><i class="bi bi-journal-text me-2 text-info"></i>{{ data.subject.name }}</h5>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <span class="badge bg-info text-dark">Avg: {{ data.avg_score|floatformat:1 }}</span>
+      <span class="badge {% if data.pass_rate >= 80 %}bg-success{% elif data.pass_rate >= 60 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+        Pass: {{ data.pass_rate }}%
+      </span>
+      <span class="badge bg-secondary">{{ data.subject.credit }} credits</span>
+      {% if data.ungraded_students %}
+      <button class="btn btn-sm btn-success"
+              data-bs-toggle="modal" data-bs-target="#addGradeModal"
+              onclick="setAddSubject({{ data.subject.pk }}, '{{ data.subject.name|escapejs }}', {{ data.ungraded_students|length }})">
+        <i class="bi bi-plus-circle me-1"></i>Add Grade
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Student</th><th>Midterm</th><th>Final</th><th>Attendance</th><th>Total</th><th>Grade</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for grade in data.top_students %}
+        <tr>
+          <td>
+            <a href="{% url 'dashboard:student_detail' grade.student.id %}" class="text-decoration-none fw-semibold">
+              {{ grade.student.full_name }}
+            </a>
+          </td>
+          <td>{{ grade.midterm|floatformat:1 }}</td>
+          <td>{{ grade.final|floatformat:1 }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <div class="progress" style="width:60px;height:6px">
+                <div class="progress-bar {% if grade.attendance >= 75 %}bg-success{% else %}bg-warning{% endif %}"
+                     style="width:{{ grade.attendance }}%"></div>
+              </div>
+              <small>{{ grade.attendance|floatformat:0 }}%</small>
+            </div>
+          </td>
+          <td><strong>{{ grade.total_score|floatformat:1 }}</strong></td>
+          <td>
+            <span class="badge {% if grade.total_score >= 90 %}bg-success{% elif grade.total_score >= 70 %}bg-primary{% elif grade.total_score >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+              {{ grade.get_letter_grade }}
+            </span>
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <button class="btn btn-xs btn-outline-primary py-0 px-1"
+                      onclick="openEditModal({{ grade.pk }}, '{{ grade.student.full_name|escapejs }}', {{ grade.midterm }}, {{ grade.final }}, {{ grade.attendance }})"
+                      title="Edit grade">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                      onclick="openDeleteModal({{ grade.pk }}, '{{ grade.student.full_name|escapejs }}', '{{ data.subject.name|escapejs }}')"
+                      title="Delete grade">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted">No grades recorded yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- ── Add Grade Modal ────────────────────────────────────────────────────── -->
+<div class="modal fade" id="addGradeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-success"></i>Add Grade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'dashboard:grade_add' %}">
+        {% csrf_token %}
+        <input type="hidden" name="subject_id" id="add-subject-id">
+        <div class="modal-body">
+          <p class="text-muted mb-3">Subject: <strong id="add-subject-name"></strong></p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Student</label>
+            <select name="student_id" id="add-student-select" class="form-select" required>
+              <option value="">Select student...</option>
+              {% for data in subject_data %}
+                {% for student in data.ungraded_students %}
+                <option value="{{ student.pk }}" data-subject="{{ data.subject.pk }}">{{ student.full_name }} ({{ student.group }})</option>
+                {% endfor %}
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-3">
+            <div class="col-4">
+              <label class="form-label fw-semibold">Midterm <small class="text-muted">(0–100)</small></label>
+              <input type="number" name="midterm" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold">Final <small class="text-muted">(0–100)</small></label>
+              <input type="number" name="final" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold">Attendance <small class="text-muted">(%)</small></label>
+              <input type="number" name="attendance" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
+            </div>
+          </div>
+          <div class="mt-3 p-2 bg-light rounded small text-muted">
+            Total = Midterm×30% + Final×50% + Attendance×20%
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Save Grade</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Grade Modal ───────────────────────────────────────────────────── -->
+<div class="modal fade" id="editGradeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-fill me-2 text-primary"></i>Edit Grade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="editGradeForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p class="text-muted mb-3">Student: <strong id="edit-student-name"></strong></p>
+          <div class="row g-3">
+            <div class="col-4">
+              <label class="form-label fw-semibold">Midterm <small class="text-muted">(0–100)</small></label>
+              <input type="number" name="midterm" id="edit-midterm" class="form-control" min="0" max="100" step="0.1" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold">Final <small class="text-muted">(0–100)</small></label>
+              <input type="number" name="final" id="edit-final" class="form-control" min="0" max="100" step="0.1" required>
+            </div>
+            <div class="col-4">
+              <label class="form-label fw-semibold">Attendance <small class="text-muted">(%)</small></label>
+              <input type="number" name="attendance" id="edit-attendance" class="form-control" min="0" max="100" step="0.1" required>
+            </div>
+          </div>
+          <div class="mt-3 p-2 bg-light rounded small text-muted">
+            Total = Midterm×30% + Final×50% + Attendance×20%
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Update Grade</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Grade Modal ─────────────────────────────────────────────────── -->
+<div class="modal fade" id="deleteGradeModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Delete Grade</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="deleteGradeForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Delete grade for <strong id="delete-student-name"></strong> in <strong id="delete-subject-name"></strong>?</p>
+          <p class="text-danger small">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash me-1"></i>Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subjectData = {{ subjects_json|safe }};
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectData.map(s => s.name),
+    datasets: [{
+      label: 'Avg Score',
+      data: subjectData.map(s => s.avg_score),
+      backgroundColor: subjectData.map(s =>
+        s.avg_score >= 70 ? 'rgba(16,185,129,0.8)' :
+        s.avg_score >= 50 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)'
+      ),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// All ungraded students keyed by subject id (populated from Django data)
+const ungradedBySubject = {};
+{% for data in subject_data %}
+ungradedBySubject[{{ data.subject.pk }}] = [
+  {% for student in data.ungraded_students %}
+  { id: {{ student.pk }}, name: "{{ student.full_name|escapejs }} ({{ student.group|escapejs }})" },
+  {% endfor %}
+];
+{% endfor %}
+
+function setAddSubject(subjectId, subjectName, count) {
+  document.getElementById('add-subject-id').value = subjectId;
+  document.getElementById('add-subject-name').textContent = subjectName;
+  const sel = document.getElementById('add-student-select');
+  sel.innerHTML = '<option value="">Select student...</option>';
+  const students = ungradedBySubject[subjectId] || [];
+  students.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+}
+
+function openEditModal(gradeId, studentName, midterm, finalScore, attendance) {
+  document.getElementById('edit-student-name').textContent = studentName;
+  document.getElementById('edit-midterm').value = midterm;
+  document.getElementById('edit-final').value = finalScore;
+  document.getElementById('edit-attendance').value = attendance;
+  document.getElementById('editGradeForm').action = '/dashboard/grades/' + gradeId + '/edit/';
+  new bootstrap.Modal(document.getElementById('editGradeModal')).show();
+}
+
+function openDeleteModal(gradeId, studentName, subjectName) {
+  document.getElementById('delete-student-name').textContent = studentName;
+  document.getElementById('delete-subject-name').textContent = subjectName;
+  document.getElementById('deleteGradeForm').action = '/dashboard/grades/' + gradeId + '/delete/';
+  new bootstrap.Modal(document.getElementById('deleteGradeModal')).show();
+}
+
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+{% endblock %}

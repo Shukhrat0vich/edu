@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Admin Dashboard</li>{% endblock %}
+
+{% block extra_css %}
+<style>
+  .kpi-card, .stat-mini {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  .stat-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  }
+  .modal-header .badge { font-size: 0.9rem; }
+  .detail-table th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; }
+  .score-bar { height: 6px; border-radius: 3px; background: #e5e7eb; }
+  .score-bar-fill { height: 100%; border-radius: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Dashboard</h1>
+  <p class="page-subtitle">System-wide performance overview</p>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-blue" data-bs-toggle="modal" data-bs-target="#studentsModal" role="button" title="Click to see all students">
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.total_students }}</div>
+        <div class="kpi-label">Total Students</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-green" data-bs-toggle="modal" data-bs-target="#gpaModal" role="button" title="Click to see GPA breakdown">
+      <div class="kpi-icon"><i class="bi bi-mortarboard-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_gpa }}</div>
+        <div class="kpi-label">Average GPA</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-red" data-bs-toggle="modal" data-bs-target="#atRiskModal" role="button" title="Click to see at-risk students">
+      <div class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.at_risk_count }}</div>
+        <div class="kpi-label">At-Risk Students</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card kpi-purple" data-bs-toggle="modal" data-bs-target="#attendanceModal" role="button" title="Click to see attendance by faculty">
+      <div class="kpi-icon"><i class="bi bi-calendar-check-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_attendance }}%</div>
+        <div class="kpi-label">Avg Attendance</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Secondary KPI Row ──────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-mini" data-bs-toggle="modal" data-bs-target="#teachersModal" role="button" title="Click to see all teachers">
+      <i class="bi bi-person-badge text-info"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_teachers }}</div>
+        <div class="stat-mini-label">Teachers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini" data-bs-toggle="modal" data-bs-target="#subjectsModal" role="button" title="Click to see all subjects">
+      <i class="bi bi-book text-warning"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_subjects }}</div>
+        <div class="stat-mini-label">Subjects</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini" data-bs-toggle="modal" data-bs-target="#gradesModal" role="button" title="Click to see grade records">
+      <i class="bi bi-clipboard-data text-success"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.total_grades }}</div>
+        <div class="stat-mini-label">Grade Records</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-mini" data-bs-toggle="modal" data-bs-target="#avgScoreModal" role="button" title="Click to see score breakdown">
+      <i class="bi bi-bar-chart text-primary"></i>
+      <div>
+        <div class="stat-mini-value">{{ summary.avg_score }}</div>
+        <div class="stat-mini-label">Avg Score</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row 1 ───────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Performance</h5>
+        <a href="{% url 'analytics:overview' %}" class="btn btn-sm btn-outline-primary">
+          View All <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+      <canvas id="subjectChart" height="120"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-xl-4">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-pie-chart-fill me-2 text-success"></i>Grade Distribution</h5>
+      </div>
+      <canvas id="gradeDistChart" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row 2 ───────────────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-distribute-horizontal me-2 text-info"></i>Score Distribution</h5>
+      </div>
+      <canvas id="scoreDistChart" height="160"></canvas>
+    </div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-calendar3 me-2 text-warning"></i>Attendance by Faculty</h5>
+      </div>
+      <canvas id="attendanceChart" height="160"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Top Students & At-Risk ─────────────────────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-12 col-xl-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-trophy-fill me-2 text-warning"></i>Top Students</h5>
+        <a href="{% url 'dashboard:student_list' %}" class="btn btn-sm btn-outline-warning">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr><th>#</th><th>Name</th><th>Faculty</th><th>GPA</th><th>Score</th></tr>
+          </thead>
+          <tbody>
+            {% for s in top_students %}
+            <tr>
+              <td>
+                {% if s.rank == 1 %}<span class="badge bg-warning text-dark">🥇 1</span>
+                {% elif s.rank == 2 %}<span class="badge bg-secondary">🥈 2</span>
+                {% elif s.rank == 3 %}<span class="badge bg-danger">🥉 3</span>
+                {% else %}<span class="text-muted">{{ s.rank }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{% url 'dashboard:student_detail' s.student_id %}" class="text-decoration-none fw-semibold">
+                  {{ s.full_name }}
+                </a>
+              </td>
+              <td><small class="text-muted">{{ s.faculty }}</small></td>
+              <td><span class="badge bg-success">{{ s.gpa }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px">
+                    <div class="progress-bar bg-success" style="width:{{ s.avg_score }}%"></div>
+                  </div>
+                  <small>{{ s.avg_score }}</small>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No data available</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-exclamation-diamond-fill me-2 text-danger"></i>At-Risk Students</h5>
+        <span class="badge bg-danger">{{ summary.at_risk_count }} total</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr><th>Name</th><th>Faculty</th><th>GPA</th><th>Avg Score</th></tr>
+          </thead>
+          <tbody>
+            {% for s in at_risk %}
+            <tr class="table-danger-soft">
+              <td>
+                <a href="{% url 'dashboard:student_detail' s.student_id %}" class="text-decoration-none">
+                  <i class="bi bi-exclamation-triangle text-danger me-1"></i>{{ s.full_name }}
+                </a>
+              </td>
+              <td><small>{{ s.faculty }}</small></td>
+              <td><span class="badge bg-danger">{{ s.gpa }}</span></td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height:6px">
+                    <div class="progress-bar bg-danger" style="width:{{ s.avg_score }}%"></div>
+                  </div>
+                  <small class="text-danger">{{ s.avg_score }}</small>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-3">
+              <i class="bi bi-check-circle text-success me-1"></i>No at-risk students — great!
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- MODALS                                                                  -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+
+<!-- 1. Total Students Modal -->
+<div class="modal fade" id="studentsModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-people-fill text-primary me-2"></i>All Students</h5>
+        <span class="badge bg-primary ms-2" id="studentCount"></span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 detail-table">
+            <thead class="table-light sticky-top">
+              <tr><th>#</th><th>Name</th><th>Faculty</th><th>Group</th><th>GPA</th><th>Avg Score</th><th></th></tr>
+            </thead>
+            <tbody id="studentsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a href="{% url 'dashboard:student_list' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-arrow-right me-1"></i>Open Full Student List
+        </a>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Average GPA Modal -->
+<div class="modal fade" id="gpaModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-mortarboard-fill text-success me-2"></i>GPA & Grade Distribution</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-4" id="gpaStats"></div>
+        <h6 class="fw-semibold mb-3">Grade Distribution</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle detail-table">
+            <thead class="table-light">
+              <tr><th>Grade</th><th>Students</th><th>Share</th><th>Visual</th></tr>
+            </thead>
+            <tbody id="gpaDistTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. At-Risk Students Modal -->
+<div class="modal fade" id="atRiskModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-danger bg-opacity-10">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>All At-Risk Students</h5>
+        <span class="badge bg-danger ms-2" id="atRiskCount"></span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="alert alert-warning m-3 py-2 mb-0">
+          <i class="bi bi-info-circle me-1"></i>Students with average score below 50 are considered at-risk.
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 detail-table">
+            <thead class="table-light sticky-top">
+              <tr><th>#</th><th>Name</th><th>Faculty</th><th>Group</th><th>GPA</th><th>Avg Score</th><th></th></tr>
+            </thead>
+            <tbody id="atRiskTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Attendance Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-check-fill text-purple me-2"></i>Attendance by Faculty</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle detail-table">
+            <thead class="table-light">
+              <tr><th>#</th><th>Faculty</th><th>Avg Attendance</th><th>Visual</th><th>Status</th></tr>
+            </thead>
+            <tbody id="attendanceTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Teachers Modal -->
+<div class="modal fade" id="teachersModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-badge text-info me-2"></i>All Teachers</h5>
+        <span class="badge bg-info ms-2" id="teacherCount"></span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 detail-table">
+            <thead class="table-light sticky-top">
+              <tr><th>#</th><th>Name</th><th>Department</th><th>Experience</th><th>Subjects</th></tr>
+            </thead>
+            <tbody id="teachersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Subjects Modal -->
+<div class="modal fade" id="subjectsModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-book text-warning me-2"></i>All Subjects</h5>
+        <span class="badge bg-warning text-dark ms-2" id="subjectCount"></span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 detail-table">
+            <thead class="table-light sticky-top">
+              <tr><th>#</th><th>Subject</th><th>Teacher</th><th>Credits</th><th>Avg Score</th><th>Pass Rate</th><th>Students</th></tr>
+            </thead>
+            <tbody id="subjectsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Grade Records Modal -->
+<div class="modal fade" id="gradesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-clipboard-data text-success me-2"></i>Grade Records — Score Distribution</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Total grade records: <strong>{{ summary.total_grades }}</strong> — broken down by score range below.</p>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle detail-table">
+            <thead class="table-light">
+              <tr><th>Score Range</th><th>Students</th><th>Visual</th></tr>
+            </thead>
+            <tbody id="gradesTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Avg Score Modal -->
+<div class="modal fade" id="avgScoreModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-bar-chart text-primary me-2"></i>Average Score Details</h5>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 mb-4" id="scoreStats"></div>
+        <h6 class="fw-semibold mb-3">Score Breakdown by Subject</h6>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle detail-table">
+            <thead class="table-light">
+              <tr><th>#</th><th>Subject</th><th>Avg</th><th>Max</th><th>Min</th><th>Pass Rate</th></tr>
+            </thead>
+            <tbody id="avgScoreTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const subjectPerf    = {{ subject_perf_json|safe }};
+const scoreDist      = {{ score_dist_json|safe }};
+const gradeDistRaw   = {{ grade_dist_json|safe }};
+const attendanceTrends = {{ attendance_trends_json|safe }};
+const allAtRisk      = {{ all_at_risk_json|safe }};
+const allStudents    = {{ all_students_json|safe }};
+const allSubjects    = {{ all_subjects_json|safe }};
+const teachersData   = {{ teachers_json|safe }};
+
+// ── Charts ────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectPerf.slice(0, 10).map(s => s.subject_name),
+    datasets: [{
+      label: 'Avg Score',
+      data: subjectPerf.slice(0, 10).map(s => s.avg_score),
+      backgroundColor: subjectPerf.slice(0, 10).map(s =>
+        s.avg_score >= 70 ? 'rgba(16,185,129,0.8)' :
+        s.avg_score >= 50 ? 'rgba(245,158,11,0.8)' : 'rgba(239,68,68,0.8)'
+      ),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+new Chart(document.getElementById('gradeDistChart'), {
+  type: 'doughnut',
+  data: {
+    labels: Object.keys(gradeDistRaw),
+    datasets: [{
+      data: Object.values(gradeDistRaw),
+      backgroundColor: ['#10B981','#3B82F6','#F59E0B','#8B5CF6','#EF4444'],
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    cutout: '65%',
+  }
+});
+
+new Chart(document.getElementById('scoreDistChart'), {
+  type: 'bar',
+  data: {
+    labels: scoreDist.map(b => b.range),
+    datasets: [{
+      label: 'Students',
+      data: scoreDist.map(b => b.count),
+      backgroundColor: 'rgba(99,102,241,0.7)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+new Chart(document.getElementById('attendanceChart'), {
+  type: 'bar',
+  data: {
+    labels: attendanceTrends.map(a => a.faculty),
+    datasets: [{
+      label: 'Avg Attendance %',
+      data: attendanceTrends.map(a => a.avg_attendance),
+      backgroundColor: 'rgba(245,158,11,0.75)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Modal helpers ─────────────────────────────────────────────────────────
+function scoreColor(s) {
+  return s >= 70 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444';
+}
+function scoreBar(s, max) {
+  const pct = Math.round((s / (max || 100)) * 100);
+  return `<div class="score-bar"><div class="score-bar-fill" style="width:${pct}%;background:${scoreColor(s)}"></div></div>`;
+}
+function gradeColor(g) {
+  return {A:'#10B981',B:'#3B82F6',C:'#F59E0B',D:'#8B5CF6',F:'#EF4444'}[g] || '#6b7280';
+}
+
+// ── 1. Students Modal ─────────────────────────────────────────────────────
+document.getElementById('studentsModal').addEventListener('show.bs.modal', () => {
+  document.getElementById('studentCount').textContent = allStudents.length + ' students';
+  const tbody = document.getElementById('studentsTbody');
+  tbody.innerHTML = allStudents.map(s => `
+    <tr>
+      <td class="text-muted">${s.rank}</td>
+      <td><a href="/dashboard/students/${s.student_id}/" class="text-decoration-none fw-semibold">${s.full_name}</a></td>
+      <td><small class="text-muted">${s.faculty || '—'}</small></td>
+      <td><small>${s.group || '—'}</small></td>
+      <td><span class="badge" style="background:${scoreColor(s.gpa*25)}">${s.gpa}</span></td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          ${scoreBar(s.avg_score, 100)}
+          <small>${s.avg_score}</small>
+        </div>
+      </td>
+      <td><a href="/dashboard/students/${s.student_id}/" class="btn btn-xs btn-outline-primary btn-sm py-0 px-2">View</a></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted py-3">No students found</td></tr>';
+});
+
+// ── 2. GPA Modal ──────────────────────────────────────────────────────────
+document.getElementById('gpaModal').addEventListener('show.bs.modal', () => {
+  const total = Object.values(gradeDistRaw).reduce((a, b) => a + b, 0);
+  const avgGpa = allStudents.length ? (allStudents.reduce((s, x) => s + parseFloat(x.gpa), 0) / allStudents.length).toFixed(2) : '—';
+  const maxGpa = allStudents.length ? Math.max(...allStudents.map(x => x.gpa)).toFixed(2) : '—';
+
+  document.getElementById('gpaStats').innerHTML = [
+    ['System Avg GPA', '{{ summary.avg_gpa }}', 'primary'],
+    ['Highest GPA', maxGpa, 'success'],
+    ['Total Students', allStudents.length, 'info'],
+    ['At-Risk Count', allAtRisk.length, 'danger'],
+  ].map(([label, val, color]) => `
+    <div class="col-6 col-md-3">
+      <div class="border rounded-3 p-3 text-center">
+        <div class="fs-4 fw-bold text-${color}">${val}</div>
+        <div class="text-muted small">${label}</div>
+      </div>
+    </div>`).join('');
+
+  const tbody = document.getElementById('gpaDistTbody');
+  tbody.innerHTML = Object.entries(gradeDistRaw).map(([grade, count]) => {
+    const pct = total ? ((count / total) * 100).toFixed(1) : 0;
+    return `<tr>
+      <td><span class="badge fs-6" style="background:${gradeColor(grade)}">${grade}</span></td>
+      <td>${count}</td>
+      <td>${pct}%</td>
+      <td><div class="score-bar" style="width:200px"><div class="score-bar-fill" style="width:${pct}%;background:${gradeColor(grade)}"></div></div></td>
+    </tr>`;
+  }).join('');
+});
+
+// ── 3. At-Risk Modal ──────────────────────────────────────────────────────
+document.getElementById('atRiskModal').addEventListener('show.bs.modal', () => {
+  document.getElementById('atRiskCount').textContent = allAtRisk.length + ' students';
+  const tbody = document.getElementById('atRiskTbody');
+  tbody.innerHTML = allAtRisk.map((s, i) => `
+    <tr>
+      <td class="text-muted">${i + 1}</td>
+      <td><a href="/dashboard/students/${s.student_id}/" class="text-decoration-none">
+        <i class="bi bi-exclamation-triangle text-danger me-1"></i>${s.full_name}
+      </a></td>
+      <td><small>${s.faculty || '—'}</small></td>
+      <td><small>${s.group || '—'}</small></td>
+      <td><span class="badge bg-danger">${s.gpa}</span></td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          ${scoreBar(s.avg_score, 100)}
+          <small class="text-danger">${s.avg_score}</small>
+        </div>
+      </td>
+      <td><a href="/dashboard/students/${s.student_id}/" class="btn btn-sm btn-outline-danger py-0 px-2">View</a></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="text-center text-success py-3"><i class="bi bi-check-circle me-1"></i>No at-risk students!</td></tr>';
+});
+
+// ── 4. Attendance Modal ───────────────────────────────────────────────────
+document.getElementById('attendanceModal').addEventListener('show.bs.modal', () => {
+  const tbody = document.getElementById('attendanceTbody');
+  const sorted = [...attendanceTrends].sort((a, b) => b.avg_attendance - a.avg_attendance);
+  tbody.innerHTML = sorted.map((a, i) => {
+    const pct = parseFloat(a.avg_attendance).toFixed(1);
+    const status = pct >= 80 ? '<span class="badge bg-success">Good</span>' :
+                   pct >= 60 ? '<span class="badge bg-warning text-dark">Fair</span>' :
+                               '<span class="badge bg-danger">Low</span>';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="fw-semibold">${a.faculty}</td>
+      <td>${pct}%</td>
+      <td><div class="score-bar" style="width:180px"><div class="score-bar-fill" style="width:${pct}%;background:${scoreColor(pct)}"></div></div></td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">No data</td></tr>';
+});
+
+// ── 5. Teachers Modal ─────────────────────────────────────────────────────
+document.getElementById('teachersModal').addEventListener('show.bs.modal', () => {
+  document.getElementById('teacherCount').textContent = teachersData.length + ' teachers';
+  const tbody = document.getElementById('teachersTbody');
+  tbody.innerHTML = teachersData.map((t, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td class="fw-semibold">${t.name}</td>
+      <td><small class="text-muted">${t.department || '—'}</small></td>
+      <td>${t.experience} yr${t.experience !== 1 ? 's' : ''}</td>
+      <td><span class="badge bg-warning text-dark">${t.subjects} subject${t.subjects !== 1 ? 's' : ''}</span></td>
+    </tr>`).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">No teachers found</td></tr>';
+});
+
+// ── 6. Subjects Modal ─────────────────────────────────────────────────────
+document.getElementById('subjectsModal').addEventListener('show.bs.modal', () => {
+  document.getElementById('subjectCount').textContent = allSubjects.length + ' subjects';
+  const tbody = document.getElementById('subjectsTbody');
+  tbody.innerHTML = allSubjects.map((s, i) => {
+    const passColor = s.pass_rate >= 70 ? 'success' : s.pass_rate >= 50 ? 'warning' : 'danger';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="fw-semibold">${s.subject_name}</td>
+      <td><small class="text-muted">${s.teacher || '—'}</small></td>
+      <td>${s.credit}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          ${scoreBar(s.avg_score, 100)}
+          <small>${s.avg_score !== null ? parseFloat(s.avg_score).toFixed(1) : '—'}</small>
+        </div>
+      </td>
+      <td><span class="badge bg-${passColor}">${s.pass_rate !== null ? parseFloat(s.pass_rate).toFixed(1) : '—'}%</span></td>
+      <td>${s.total_students}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="text-center text-muted py-3">No subjects found</td></tr>';
+});
+
+// ── 7. Grade Records Modal ────────────────────────────────────────────────
+document.getElementById('gradesModal').addEventListener('show.bs.modal', () => {
+  const maxCount = Math.max(...scoreDist.map(b => b.count), 1);
+  const tbody = document.getElementById('gradesTbody');
+  tbody.innerHTML = scoreDist.map(b => `
+    <tr>
+      <td class="fw-semibold">${b.range}</td>
+      <td>${b.count}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <div class="score-bar flex-grow-1"><div class="score-bar-fill" style="width:${Math.round((b.count/maxCount)*100)}%;background:#6366f1"></div></div>
+          <small class="text-muted">${b.count}</small>
+        </div>
+      </td>
+    </tr>`).join('');
+});
+
+// ── 8. Avg Score Modal ────────────────────────────────────────────────────
+document.getElementById('avgScoreModal').addEventListener('show.bs.modal', () => {
+  const scores = allSubjects.map(s => parseFloat(s.avg_score)).filter(x => !isNaN(x));
+  const min = scores.length ? Math.min(...scores).toFixed(1) : '—';
+  const max = scores.length ? Math.max(...scores).toFixed(1) : '—';
+
+  document.getElementById('scoreStats').innerHTML = [
+    ['System Avg Score', '{{ summary.avg_score }}', 'primary'],
+    ['Highest Subject Avg', max, 'success'],
+    ['Lowest Subject Avg', min, 'danger'],
+    ['Total Subjects', allSubjects.length, 'info'],
+  ].map(([label, val, color]) => `
+    <div class="col-6 col-md-3">
+      <div class="border rounded-3 p-3 text-center">
+        <div class="fs-4 fw-bold text-${color}">${val}</div>
+        <div class="text-muted small">${label}</div>
+      </div>
+    </div>`).join('');
+
+  const sorted = [...allSubjects].sort((a, b) => (b.avg_score || 0) - (a.avg_score || 0));
+  const tbody = document.getElementById('avgScoreTbody');
+  tbody.innerHTML = sorted.map((s, i) => {
+    const avg = s.avg_score !== null ? parseFloat(s.avg_score).toFixed(1) : '—';
+    const passColor = s.pass_rate >= 70 ? 'success' : s.pass_rate >= 50 ? 'warning' : 'danger';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td class="fw-semibold">${s.subject_name}</td>
+      <td><strong style="color:${scoreColor(s.avg_score)}">${avg}</strong></td>
+      <td>${s.max_score !== null ? parseFloat(s.max_score).toFixed(1) : '—'}</td>
+      <td>${s.min_score !== null ? parseFloat(s.min_score).toFixed(1) : '—'}</td>
+      <td><span class="badge bg-${passColor}">${s.pass_rate !== null ? parseFloat(s.pass_rate).toFixed(1) : '—'}%</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">No data</td></tr>';
+});
+</script>
+{% endblock %}

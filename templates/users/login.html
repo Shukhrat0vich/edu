@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="login-page">
+  <div class="login-container">
+    <!-- Left Panel -->
+    <div class="login-brand">
+      <div class="brand-content">
+        <div class="brand-icon">🎓</div>
+        <h1 class="brand-title">EduAnalytics</h1>
+        <p class="brand-subtitle">Student Performance Intelligence Platform</p>
+        <div class="brand-features">
+          <div class="feature-item"><i class="bi bi-graph-up-arrow"></i> Statistical Analysis</div>
+          <div class="feature-item"><i class="bi bi-cpu"></i> ML Predictions</div>
+          <div class="feature-item"><i class="bi bi-shield-check"></i> Role-Based Access</div>
+          <div class="feature-item"><i class="bi bi-download"></i> Export Reports</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="login-form-panel">
+      <div class="login-form-content">
+        <div class="text-center mb-4">
+          <h2 class="login-title">Welcome Back</h2>
+          <p class="text-muted">Sign in to your account</p>
+        </div>
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="email" class="form-label fw-semibold">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" class="form-control form-control-lg" id="email" name="email"
+                     value="{{ email|default:'' }}" placeholder="you@example.com" required autofocus>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label fw-semibold">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input type="password" class="form-control form-control-lg" id="password"
+                     name="password" placeholder="••••••••" required>
+              <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                <i class="bi bi-eye" id="toggleIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg w-100">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+          </button>
+        </form>
+
+        <div class="mt-4 p-3 bg-light rounded-3 demo-credentials">
+          <small class="text-muted fw-semibold d-block mb-2">
+            <i class="bi bi-info-circle me-1"></i>Demo Credentials
+          </small>
+          <div class="d-flex flex-column gap-1">
+            <small><strong>Admin:</strong> admin@edu.com / admin123</small>
+            <small><strong>Teacher:</strong> teacher@edu.com / teacher123</small>
+            <small><strong>Student:</strong> student@edu.com / student123</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+  const pwd = document.getElementById('password');
+  const icon = document.getElementById('toggleIcon');
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    pwd.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+});
+</script>
+{% endblock %}

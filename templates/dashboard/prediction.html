@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}ML Prediction{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">ML Prediction</li>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-cpu me-2 text-primary"></i>Grade Prediction</h1>
+  <p class="page-subtitle">AI-powered final exam score predictor using Linear Regression</p>
+</div>
+
+<div class="row g-4">
+  <!-- Form -->
+  <div class="col-12 col-lg-5">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-sliders me-2 text-primary"></i>Input Parameters</h5>
+      </div>
+      <form method="post" id="predForm">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-calendar-check me-1 text-success"></i>Attendance (%)
+          </label>
+          <input type="range" class="form-range" name="attendance" id="attendanceRange"
+                 min="0" max="100" step="1" value="{{ prefill.attendance|default:75 }}"
+                 oninput="document.getElementById('attendanceVal').textContent=this.value">
+          <div class="d-flex justify-content-between">
+            <small class="text-muted">0%</small>
+            <span class="badge bg-success fs-6" id="attendanceVal">{{ prefill.attendance|default:75 }}</span>
+            <small class="text-muted">100%</small>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-pencil-square me-1 text-info"></i>Midterm Score (0–100)
+          </label>
+          <input type="range" class="form-range" name="midterm" id="midtermRange"
+                 min="0" max="100" step="0.5" value="{{ prefill.midterm|default:60 }}"
+                 oninput="document.getElementById('midtermVal').textContent=parseFloat(this.value).toFixed(1)">
+          <div class="d-flex justify-content-between">
+            <small class="text-muted">0</small>
+            <span class="badge bg-info text-dark fs-6" id="midtermVal">{{ prefill.midterm|default:60 }}</span>
+            <small class="text-muted">100</small>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-award me-1 text-warning"></i>Previous GPA (0.0–4.0)
+          </label>
+          <input type="range" class="form-range" name="previous_gpa" id="gpaRange"
+                 min="0" max="4" step="0.1" value="{{ prefill.previous_gpa|default:2.5 }}"
+                 oninput="document.getElementById('gpaVal').textContent=parseFloat(this.value).toFixed(1)">
+          <div class="d-flex justify-content-between">
+            <small class="text-muted">0.0</small>
+            <span class="badge bg-warning text-dark fs-6" id="gpaVal">{{ prefill.previous_gpa|default:2.5 }}</span>
+            <small class="text-muted">4.0</small>
+          </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary w-100 btn-lg" {% if not model_info.is_trained %}disabled{% endif %}>
+          <i class="bi bi-cpu me-2"></i>Predict Performance
+        </button>
+
+        {% if not model_info.is_trained %}
+        <div class="alert alert-warning mt-3">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          ML model not trained yet. Run:<br>
+          <code>python manage.py train_ml_model</code>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Model Info -->
+    {% if model_info.is_trained %}
+    <div class="data-card mt-4">
+      <div class="data-card-header">
+        <h6><i class="bi bi-info-circle me-2 text-secondary"></i>Model Info</h6>
+      </div>
+      <dl class="row mb-0 small">
+        <dt class="col-sm-5">Algorithm</dt>
+        <dd class="col-sm-7">{{ model_info.algorithm }}</dd>
+        {% if model_info.metrics %}
+        <dt class="col-sm-5">R² Score</dt>
+        <dd class="col-sm-7"><span class="badge bg-primary">{{ model_info.metrics.r2 }}</span></dd>
+        <dt class="col-sm-5">RMSE</dt>
+        <dd class="col-sm-7">{{ model_info.metrics.rmse }}</dd>
+        <dt class="col-sm-5">MAE</dt>
+        <dd class="col-sm-7">{{ model_info.metrics.mae }}</dd>
+        <dt class="col-sm-5">Train Samples</dt>
+        <dd class="col-sm-7">{{ model_info.metrics.training_samples }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Result -->
+  <div class="col-12 col-lg-7">
+    {% if prediction %}
+    <div class="prediction-result-card">
+      <div class="text-center mb-4">
+        <h3 class="text-muted mb-1">Predicted Final Score</h3>
+        <div class="prediction-big-score {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}">
+          {{ prediction.predicted_final }}
+        </div>
+        <div class="mt-3">
+          <span class="badge risk-{{ prediction.risk_level }} fs-5 px-4 py-2">
+            {{ prediction.risk_label }}
+          </span>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-4">
+          <div class="result-metric">
+            <div class="result-metric-value">{{ prediction.predicted_total_score }}</div>
+            <div class="result-metric-label">Predicted Total</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="result-metric">
+            <div class="result-metric-value">{{ prediction.input.attendance }}%</div>
+            <div class="result-metric-label">Attendance</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="result-metric">
+            <div class="result-metric-value">{{ prediction.input.midterm }}</div>
+            <div class="result-metric-label">Midterm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Explanation -->
+      <div class="alert {% if prediction.risk_level == 'at_risk' %}alert-danger{% elif prediction.risk_level == 'borderline' %}alert-warning{% else %}alert-success{% endif %}">
+        {% if prediction.risk_level == 'at_risk' %}
+        <strong>⚠️ At Risk:</strong> Predicted final score below 50. Immediate action required —
+        increase attendance, seek extra help, and focus on final exam preparation.
+        {% elif prediction.risk_level == 'borderline' %}
+        <strong>⚡ Borderline:</strong> Predicted final between 50–70. There's room for improvement.
+        Consistent study habits and attendance can push you to the next level.
+        {% else %}
+        <strong>✅ On Track:</strong> Predicted final score looks good! Keep up the attendance and
+        study consistency to maintain or improve your performance.
+        {% endif %}
+      </div>
+
+      <canvas id="predChart" height="100"></canvas>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">🤖</div>
+      <h3>Enter Parameters</h3>
+      <p class="text-muted">Adjust the sliders on the left and click <strong>Predict Performance</strong>
+      to get an AI-powered prediction of your final exam score.</p>
+      <div class="mt-3">
+        <div class="d-flex justify-content-center gap-4 text-muted small">
+          <div><i class="bi bi-calendar-check text-success me-1"></i>Attendance impact: 20%</div>
+          <div><i class="bi bi-pencil-square text-info me-1"></i>Midterm impact: 30%</div>
+          <div><i class="bi bi-award text-warning me-1"></i>GPA factor</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if prediction %}
+<script>
+new Chart(document.getElementById('predChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Attendance (Input)', 'Midterm (Input)', 'Predicted Final', 'Predicted Total'],
+    datasets: [{
+      label: 'Score',
+      data: [
+        {{ prediction.input.attendance }},
+        {{ prediction.input.midterm }},
+        {{ prediction.predicted_final }},
+        {{ prediction.predicted_total_score }}
+      ],
+      backgroundColor: [
+        'rgba(16,185,129,0.7)',
+        'rgba(59,130,246,0.7)',
+        '{% if prediction.risk_level == "at_risk" %}rgba(239,68,68,0.7){% elif prediction.risk_level == "borderline" %}rgba(245,158,11,0.7){% else %}rgba(16,185,129,0.7){% endif %}',
+        'rgba(139,92,246,0.7)',
+      ],
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

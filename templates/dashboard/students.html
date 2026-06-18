@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Students</li>{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:12px;">
+  <a href="{% url 'dashboard:admin' %}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid #6c757d;border-radius:6px;color:#6c757d;text-decoration:none;font-size:14px;background:#fff;">
+    &#8592; Back to Dashboard
+  </a>
+</div>
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-people-fill me-2 text-primary"></i>Students</h1>
+  <p class="page-subtitle">{{ total_count }} students found</p>
+</div>
+
+<!-- ── Filters ────────────────────────────────────────────────────────────── -->
+<div class="data-card mb-4">
+  <form method="get" class="row g-3">
+    <div class="col-12 col-md-5">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" name="search" value="{{ search }}"
+               placeholder="Search by name, email, or group...">
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <select class="form-select" name="faculty">
+        <option value="">All Faculties</option>
+        {% for f in faculties %}
+        <option value="{{ f }}" {% if faculty == f %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select class="form-select" name="group">
+        <option value="">All Groups</option>
+        {% for g in groups %}
+        <option value="{{ g }}" {% if group == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-search me-1"></i>Search
+      </button>
+      <a href="{% url 'dashboard:student_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-x-lg"></i>
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- ── Table ──────────────────────────────────────────────────────────────── -->
+<div class="data-card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Faculty</th>
+          <th>Group</th>
+          <th>Enrollment</th>
+          <th>GPA</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in page_obj %}
+        <tr>
+          <td class="text-muted small">{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar-sm">{{ student.full_name|first|upper }}</div>
+              <span class="fw-semibold">{{ student.full_name }}</span>
+            </div>
+          </td>
+          <td class="text-muted small">{{ student.email }}</td>
+          <td><span class="badge bg-light text-dark border">{{ student.faculty }}</span></td>
+          <td>{{ student.group }}</td>
+          <td>{{ student.enrollment_year }}</td>
+          <td>
+            {% with gpa=student.calculate_gpa %}
+            <span class="badge {% if gpa >= 3.0 %}bg-success{% elif gpa >= 2.0 %}bg-primary{% else %}bg-danger{% endif %}">
+              {{ gpa }}
+            </span>
+            {% endwith %}
+          </td>
+          <td>
+            {% if student.is_at_risk %}
+            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>At Risk</span>
+            {% else %}
+            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Good</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'dashboard:student_detail' student.id %}"
+               class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> View
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-5">
+            <i class="bi bi-search fs-2 d-block mb-2"></i>
+            No students found matching your criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div class="d-flex justify-content-between align-items-center p-3 border-top">
+    <small class="text-muted">
+      Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+    </small>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search }}&faculty={{ faculty }}&group={{ group }}">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ num }}&search={{ search }}&faculty={{ faculty }}&group={{ group }}">{{ num }}</a>
+          </li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search }}&faculty={{ faculty }}&group={{ group }}">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

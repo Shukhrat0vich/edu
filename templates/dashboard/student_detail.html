@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard:student_list' %}">Students</a></li>
+<li class="breadcrumb-item active">{{ student.full_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:12px;">
+  <a href="{% url 'dashboard:admin' %}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid #6c757d;border-radius:6px;color:#6c757d;text-decoration:none;font-size:14px;background:#fff;">
+    &#8592; Back to Dashboard
+  </a>
+</div>
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    <div class="avatar-lg">{{ student.full_name|first|upper }}</div>
+    <div>
+      <h1 class="page-title mb-1">{{ student.full_name }}</h1>
+      <p class="page-subtitle mb-0">
+        {{ student.faculty }} · Group {{ student.group }} · Enrolled {{ student.enrollment_year }}
+      </p>
+      <small class="text-muted">{{ student.email }}</small>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card {% if summary.gpa >= 3.0 %}kpi-green{% elif summary.gpa >= 2.0 %}kpi-blue{% else %}kpi-red{% endif %}">
+      <div class="kpi-icon"><i class="bi bi-award-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.gpa }}</div>
+        <div class="kpi-label">GPA</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="bi bi-bar-chart"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.avg_score }}</div>
+        <div class="kpi-label">Avg Score</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="bi bi-star-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">{{ summary.best_score }}</div>
+        <div class="kpi-label">Best Score</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card {% if summary.at_risk %}kpi-red{% else %}kpi-purple{% endif %}">
+      <div class="kpi-icon">
+        <i class="bi bi-{% if summary.at_risk %}exclamation-triangle-fill{% else %}shield-check-fill{% endif %}"></i>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value" style="font-size:1rem">{% if summary.at_risk %}At Risk{% else %}Safe{% endif %}</div>
+        <div class="kpi-label">Risk Status</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Chart -->
+  <div class="col-12 col-xl-8">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Subject Performance</h5>
+      </div>
+      <canvas id="subjectChart" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- ML Prediction -->
+  <div class="col-12 col-xl-4">
+    {% if prediction %}
+    <div class="prediction-card h-100">
+      <div class="prediction-header">
+        <h5><i class="bi bi-cpu-fill me-2"></i>ML Prediction</h5>
+        <small>Predicted final performance</small>
+      </div>
+      <div class="text-center my-3">
+        <div class="score-circle-lg {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}">
+          {{ prediction.predicted_final }}
+        </div>
+        <div class="mt-2">
+          <span class="badge fs-6 risk-{{ prediction.risk_level }}">{{ prediction.risk_label }}</span>
+        </div>
+      </div>
+      <div class="prediction-details">
+        <div class="pred-detail">
+          <span>Predicted Total</span>
+          <strong>{{ prediction.predicted_total_score }}</strong>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="chart-card h-100 d-flex align-items-center justify-content-center">
+      <div class="text-center text-muted">
+        <i class="bi bi-cpu fs-2 d-block mb-2"></i>
+        <p>ML prediction unavailable.<br>Train the model first.</p>
+        <a href="{% url 'dashboard:predict' %}" class="btn btn-sm btn-outline-primary">
+          Try Prediction
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Grades Table -->
+<div class="data-card">
+  <div class="data-card-header">
+    <h5><i class="bi bi-table me-2"></i>Grade Details</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr><th>Subject</th><th>Midterm</th><th>Final</th><th>Attendance</th><th>Total</th><th>Grade</th></tr>
+      </thead>
+      <tbody>
+        {% for s in summary.subjects %}
+        <tr>
+          <td class="fw-semibold">{{ s.subject }}</td>
+          <td>{{ s.midterm|floatformat:1 }}</td>
+          <td>{{ s.final|floatformat:1 }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress" style="width:60px;height:6px">
+                <div class="progress-bar {% if s.attendance >= 75 %}bg-success{% else %}bg-warning{% endif %}" style="width:{{ s.attendance }}%"></div>
+              </div>
+              <small>{{ s.attendance|floatformat:0 }}%</small>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height:8px">
+                <div class="progress-bar {% if s.total_score >= 70 %}bg-success{% elif s.total_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ s.total_score }}%"></div>
+              </div>
+              <strong>{{ s.total_score|floatformat:1 }}</strong>
+            </div>
+          </td>
+          <td>
+            <span class="badge {% if s.letter == 'A' %}bg-success{% elif s.letter == 'B' %}bg-primary{% elif s.letter == 'C' %}bg-info text-dark{% elif s.letter == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ s.letter }}</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">No grades recorded.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const data = {{ subjects_json|safe }};
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: data.map(s => s.subject),
+    datasets: [
+      { label: 'Midterm', data: data.map(s=>s.midterm), backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4 },
+      { label: 'Final', data: data.map(s=>s.final), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
+      { label: 'Total', data: data.map(s=>s.total_score), backgroundColor: 'rgba(139,92,246,0.7)', borderRadius: 4 },
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

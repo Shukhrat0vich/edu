@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Correlation Matrix{% endblock %}
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'analytics:overview' %}">Analytics</a></li>
+<li class="breadcrumb-item active">Correlation</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title"><i class="bi bi-table me-2 text-info"></i>Correlation Matrix</h1>
+    <p class="page-subtitle">Pearson correlation between attendance, midterm, final, and total score</p>
+  </div>
+  <a href="{% url 'dashboard:admin' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-xl-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-grid-3x3 me-2 text-info"></i>Correlation Values</h5>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle text-center">
+          <thead class="table-dark">
+            <tr>
+              <th></th>
+              {% for col in correlation.keys %}
+              <th>{{ col|title }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row_name, row_vals in correlation.items %}
+            <tr>
+              <th class="table-dark text-nowrap">{{ row_name|title }}</th>
+              {% for col_name, val in row_vals.items %}
+              <td class="
+                {% if val == 1.0 %}bg-secondary text-white
+                {% elif val >= 0.7 %}bg-success text-white
+                {% elif val >= 0.4 %}bg-success bg-opacity-50
+                {% elif val >= 0.1 %}bg-light
+                {% elif val < 0 %}bg-danger bg-opacity-25
+                {% else %}bg-light
+                {% endif %}
+                fw-semibold
+              ">
+                {{ val|floatformat:3 }}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="p-3 bg-light rounded-bottom">
+        <small class="text-muted">
+          <strong>Interpretation:</strong>
+          <span class="badge bg-success ms-1">≥ 0.7</span> Strong |
+          <span class="badge bg-success bg-opacity-50 text-dark ms-1">0.4–0.7</span> Moderate |
+          <span class="badge bg-light text-dark border ms-1">0.1–0.4</span> Weak |
+          <span class="badge bg-danger bg-opacity-50 text-dark ms-1">&lt; 0</span> Negative
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-6">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <h5><i class="bi bi-diagram-3 me-2 text-primary"></i>Scatter: Attendance vs Final</h5>
+      </div>
+      <canvas id="scatterChart" height="300"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-2">
+  <div class="col-12">
+    <div class="data-card">
+      <div class="data-card-header">
+        <h5><i class="bi bi-lightbulb me-2 text-warning"></i>Key Insights</h5>
+      </div>
+      <div class="row g-3 p-3">
+        {% for row_name, row_vals in correlation.items %}
+          {% for col_name, val in row_vals.items %}
+            {% if val >= 0.7 and row_name != col_name %}
+            <div class="col-12 col-md-6">
+              <div class="insight-card insight-strong">
+                <i class="bi bi-arrow-up-circle-fill text-success me-2"></i>
+                <strong>{{ row_name|title }} ↔ {{ col_name|title }}</strong>: Strong positive correlation (r={{ val|floatformat:3 }})
+              </div>
+            </div>
+            {% elif val <= -0.4 and row_name != col_name %}
+            <div class="col-12 col-md-6">
+              <div class="insight-card insight-negative">
+                <i class="bi bi-arrow-down-circle-fill text-danger me-2"></i>
+                <strong>{{ row_name|title }} ↔ {{ col_name|title }}</strong>: Negative correlation (r={{ val|floatformat:3 }})
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
