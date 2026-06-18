@@ -16,160 +16,140 @@
 
 {% if user.is_authenticated %}
 
-<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
-<aside class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <div class="sidebar-logo">
-      <span class="logo-icon">🎓</span>
-      <span class="logo-text">EduAnalytics</span>
-    </div>
-    <button class="sidebar-toggle-btn btn p-1" id="sidebarClose" onclick="toggleSidebar()">
-      <i class="bi bi-x-lg" style="font-size:16px;"></i>
-    </button>
+<!-- ── Top Navbar ─────────────────────────────────────────────────────── -->
+<header class="top-navbar" id="topNavbar">
+  <div class="d-flex align-items-center gap-3">
+    <!-- Logo -->
+    <a href="{% url 'dashboard:home' %}" class="d-flex align-items-center gap-2 text-decoration-none">
+      <span style="font-size:20px;">🎓</span>
+      <span style="font-size:15px;font-weight:800;color:var(--text-primary);letter-spacing:-.3px;">EduAnalytics</span>
+    </a>
+
+    <!-- Nav links (desktop) -->
+    <nav class="d-none d-lg-flex align-items-center gap-1 ms-3">
+      {% if user.role == 'admin' %}
+        <a href="{% url 'dashboard:admin' %}" class="top-nav-link {% if request.resolver_match.url_name == 'admin' %}active{% endif %}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a href="{% url 'dashboard:student_list' %}" class="top-nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+          <i class="bi bi-people"></i> Students
+        </a>
+        <a href="{% url 'analytics:overview' %}" class="top-nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
+          <i class="bi bi-graph-up-arrow"></i> Analytics
+        </a>
+        <div class="dropdown">
+          <button class="top-nav-link dropdown-toggle border-0 bg-transparent" data-bs-toggle="dropdown">
+            <i class="bi bi-download"></i> Export
+          </button>
+          <ul class="dropdown-menu dropdown-menu-custom">
+            <li><a class="dropdown-item-custom" href="{% url 'analytics:export_excel' %}"><i class="bi bi-file-earmark-excel text-success"></i> Excel Report</a></li>
+            <li><a class="dropdown-item-custom" href="{% url 'analytics:export_pdf' %}"><i class="bi bi-file-earmark-pdf text-danger"></i> PDF Report</a></li>
+          </ul>
+        </div>
+      {% elif user.role == 'teacher' %}
+        <a href="{% url 'dashboard:teacher' %}" class="top-nav-link {% if request.resolver_match.url_name == 'teacher' %}active{% endif %}">
+          <i class="bi bi-person-badge"></i> Dashboard
+        </a>
+        <a href="{% url 'dashboard:student_list' %}" class="top-nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
+          <i class="bi bi-people"></i> My Students
+        </a>
+        <a href="{% url 'analytics:overview' %}" class="top-nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
+          <i class="bi bi-graph-up-arrow"></i> Analytics
+        </a>
+      {% else %}
+        <a href="{% url 'dashboard:student' %}" class="top-nav-link {% if request.resolver_match.url_name == 'student' %}active{% endif %}">
+          <i class="bi bi-house-door"></i> My Dashboard
+        </a>
+        <a href="{% url 'dashboard:predict' %}" class="top-nav-link {% if request.resolver_match.url_name == 'predict' %}active{% endif %}">
+          <i class="bi bi-cpu"></i> ML Predictor
+        </a>
+      {% endif %}
+    </nav>
   </div>
 
-  <div class="sidebar-user">
-    <div class="user-avatar">{{ user.full_name|slice:":1"|upper }}</div>
-    <div class="overflow-hidden">
-      <div class="user-name">{{ user.full_name }}</div>
-      <div class="user-role">
-        <span class="badge role-badge-{{ user.role }} px-2" style="font-size:10px;">{{ user.role|title }}</span>
-      </div>
-    </div>
-  </div>
-
-  <nav class="sidebar-nav">
-
-    {% if user.role == 'admin' %}
-    <li class="nav-section-title">Main</li>
-    <a href="{% url 'dashboard:admin' %}" class="nav-link {% if request.resolver_match.url_name == 'admin' %}active{% endif %}">
-      <i class="bi bi-speedometer2"></i> Dashboard
-    </a>
-    <a href="{% url 'dashboard:student_list' %}" class="nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
-      <i class="bi bi-people"></i> Students
-    </a>
-    <li class="nav-section-title mt-2">Analytics</li>
-    <a href="{% url 'analytics:overview' %}" class="nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
-      <i class="bi bi-graph-up-arrow"></i> Overview
-    </a>
-    <a href="{% url 'analytics:correlation' %}" class="nav-link {% if request.resolver_match.url_name == 'correlation' %}active{% endif %}">
-      <i class="bi bi-grid-3x3"></i> Correlation
-    </a>
-    <a href="{% url 'analytics:heatmap' %}" class="nav-link {% if request.resolver_match.url_name == 'heatmap' %}active{% endif %}">
-      <i class="bi bi-map"></i> Heatmap
-    </a>
-    <li class="nav-section-title mt-2">Export</li>
-    <a href="{% url 'analytics:export_excel' %}" class="nav-link">
-      <i class="bi bi-file-earmark-excel"></i> Excel Report
-    </a>
-    <a href="{% url 'analytics:export_pdf' %}" class="nav-link">
-      <i class="bi bi-file-earmark-pdf"></i> PDF Report
-    </a>
-
-    {% elif user.role == 'teacher' %}
-    <li class="nav-section-title">Main</li>
-    <a href="{% url 'dashboard:teacher' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher' %}active{% endif %}">
-      <i class="bi bi-person-badge"></i> Dashboard
-    </a>
-    <a href="{% url 'dashboard:student_list' %}" class="nav-link {% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">
-      <i class="bi bi-people"></i> My Students
-    </a>
-    <li class="nav-section-title mt-2">Analytics</li>
-    <a href="{% url 'analytics:overview' %}" class="nav-link {% if request.resolver_match.url_name == 'overview' %}active{% endif %}">
-      <i class="bi bi-graph-up-arrow"></i> Overview
-    </a>
-
-    {% else %}
-    <li class="nav-section-title">Main</li>
-    <a href="{% url 'dashboard:student' %}" class="nav-link {% if request.resolver_match.url_name == 'student' %}active{% endif %}">
-      <i class="bi bi-house-door"></i> My Dashboard
-    </a>
-    <a href="{% url 'dashboard:predict' %}" class="nav-link {% if request.resolver_match.url_name == 'predict' %}active{% endif %}">
-      <i class="bi bi-cpu"></i> ML Predictor
-    </a>
-    {% endif %}
-
-    <li class="nav-section-title mt-2">Account</li>
-    <a href="{% url 'users:profile' %}" class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
-      <i class="bi bi-person-circle"></i> Profile
-    </a>
-    <form method="post" action="{% url 'users:logout' %}" style="margin:0;">
-      {% csrf_token %}
-      <button type="submit" class="nav-link btn-logout w-100">
-        <i class="bi bi-box-arrow-left"></i> Sign Out
-      </button>
-    </form>
-
-  </nav>
-
-  <div class="sidebar-footer">
+  <!-- Right side: dark mode + user dropdown -->
+  <div class="d-flex align-items-center gap-2">
     <button class="dark-mode-toggle" onclick="toggleDark()" title="Toggle dark mode">
       <i class="bi bi-moon-stars-fill" id="darkIcon"></i>
     </button>
-  </div>
-</aside>
 
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-
-<!-- ── Main Content ───────────────────────────────────────────────────── -->
-<div class="main-content" id="mainContent">
-
-  <!-- Top Navbar -->
-  <header class="top-navbar">
-    <div class="d-flex align-items-center gap-3">
-      <button class="btn sidebar-toggle p-1" onclick="toggleSidebar()" title="Toggle sidebar">
-        <i class="bi bi-list fs-5"></i>
+    <!-- User dropdown -->
+    <div class="dropdown">
+      <button class="user-dropdown-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <div class="user-avatar-sm">{{ user.full_name|slice:":1"|upper }}</div>
+        <span class="d-none d-sm-inline user-dropdown-name">{{ user.full_name }}</span>
+        <i class="bi bi-chevron-down" style="font-size:10px;opacity:.6;"></i>
       </button>
-      <nav aria-label="breadcrumb" class="d-none d-md-block">
-        <ol class="breadcrumb mb-0" style="font-size:13px;">
-          <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}" style="color:#64748b;text-decoration:none;">Home</a></li>
-          {% block breadcrumb %}{% endblock %}
-        </ol>
-      </nav>
-    </div>
-    <div class="d-flex align-items-center gap-3">
-      <div class="d-flex align-items-center gap-2">
-        <div class="user-avatar" style="width:32px;height:32px;border-radius:8px;font-size:13px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;color:white;">
-          {{ user.full_name|slice:":1"|upper }}
+
+      <div class="dropdown-menu dropdown-menu-end dropdown-menu-custom dropdown-menu-wide">
+        <!-- User info header -->
+        <div class="dropdown-user-header">
+          <div class="user-avatar-sm" style="width:42px;height:42px;border-radius:12px;font-size:18px;">{{ user.full_name|slice:":1"|upper }}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--text-primary);">{{ user.full_name }}</div>
+            <div style="font-size:12px;color:var(--text-muted);">{{ user.email }}</div>
+            <span class="role-chip role-chip-{{ user.role }}">{{ user.role|title }}</span>
+          </div>
         </div>
-        <span style="font-size:13px;font-weight:600;color:#374151;" class="d-none d-sm-inline">{{ user.full_name }}</span>
+        <div class="dropdown-divider-custom"></div>
+
+        <!-- Mobile nav links (hidden on desktop) -->
+        <div class="d-lg-none">
+          {% if user.role == 'admin' %}
+            <a class="dropdown-item-custom" href="{% url 'dashboard:admin' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="dropdown-item-custom" href="{% url 'dashboard:student_list' %}"><i class="bi bi-people"></i> Students</a>
+            <a class="dropdown-item-custom" href="{% url 'analytics:overview' %}"><i class="bi bi-graph-up-arrow"></i> Analytics</a>
+            <a class="dropdown-item-custom" href="{% url 'analytics:export_excel' %}"><i class="bi bi-file-earmark-excel"></i> Excel Export</a>
+            <a class="dropdown-item-custom" href="{% url 'analytics:export_pdf' %}"><i class="bi bi-file-earmark-pdf"></i> PDF Export</a>
+          {% elif user.role == 'teacher' %}
+            <a class="dropdown-item-custom" href="{% url 'dashboard:teacher' %}"><i class="bi bi-person-badge"></i> Dashboard</a>
+            <a class="dropdown-item-custom" href="{% url 'dashboard:student_list' %}"><i class="bi bi-people"></i> My Students</a>
+            <a class="dropdown-item-custom" href="{% url 'analytics:overview' %}"><i class="bi bi-graph-up-arrow"></i> Analytics</a>
+          {% else %}
+            <a class="dropdown-item-custom" href="{% url 'dashboard:student' %}"><i class="bi bi-house-door"></i> My Dashboard</a>
+            <a class="dropdown-item-custom" href="{% url 'dashboard:predict' %}"><i class="bi bi-cpu"></i> ML Predictor</a>
+          {% endif %}
+          <div class="dropdown-divider-custom"></div>
+        </div>
+
+        <a class="dropdown-item-custom" href="{% url 'users:profile' %}"><i class="bi bi-person-circle"></i> Profile</a>
+        <div class="dropdown-divider-custom"></div>
+        <form method="post" action="{% url 'users:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="dropdown-item-custom dropdown-item-danger w-100 text-start border-0 bg-transparent">
+            <i class="bi bi-box-arrow-left"></i> Sign Out
+          </button>
+        </form>
       </div>
     </div>
-  </header>
-
-  <!-- Flash Messages -->
-  {% if messages %}
-  <div class="px-4 pt-3">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-3" style="font-size:13px;" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
   </div>
-  {% endif %}
+</header>
 
-  <!-- Page Content -->
-  <main class="page-content">
+<!-- Flash Messages -->
+{% if messages %}
+<div class="messages-wrapper">
+  {% for message in messages %}
+  <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Page Content -->
+<main class="page-content-full">
 {% endif %}
 
 {% block content %}{% endblock %}
 
 {% if user.is_authenticated %}
-  </main>
-</div><!-- /main-content -->
+</main>
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  function toggleSidebar() {
-    const s = document.getElementById('sidebar');
-    const o = document.getElementById('sidebarOverlay');
-    s.classList.toggle('open');
-    o.classList.toggle('active');
-  }
-
   function toggleDark() {
     const html = document.documentElement;
     const isDark = html.getAttribute('data-bs-theme') === 'dark';
