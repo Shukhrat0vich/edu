@@ -60,9 +60,6 @@
         <a href="{% url 'dashboard:student' %}" class="top-nav-link {% if request.resolver_match.url_name == 'student' %}active{% endif %}">
           <i class="bi bi-house-door"></i> My Dashboard
         </a>
-        <a href="{% url 'dashboard:predict' %}" class="top-nav-link {% if request.resolver_match.url_name == 'predict' %}active{% endif %}">
-          <i class="bi bi-cpu"></i> ML Predictor
-        </a>
       {% endif %}
     </nav>
   </div>
@@ -107,7 +104,6 @@
             <a class="dropdown-item-custom" href="{% url 'analytics:overview' %}"><i class="bi bi-graph-up-arrow"></i> Analytics</a>
           {% else %}
             <a class="dropdown-item-custom" href="{% url 'dashboard:student' %}"><i class="bi bi-house-door"></i> My Dashboard</a>
-            <a class="dropdown-item-custom" href="{% url 'dashboard:predict' %}"><i class="bi bi-cpu"></i> ML Predictor</a>
           {% endif %}
           <div class="dropdown-divider-custom"></div>
         </div>
