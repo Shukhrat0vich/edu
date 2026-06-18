@@ -212,6 +212,17 @@ class StudentListView(View):
 
         qs = Student.objects.select_related('user').all()
 
+        # Teachers only see students enrolled in their subjects
+        if request.user.role == UserRole.TEACHER:
+            try:
+                teacher = request.user.teacher_profile
+                student_ids = Grade.objects.filter(
+                    subject__teacher=teacher
+                ).values_list('student_id', flat=True).distinct()
+                qs = qs.filter(pk__in=student_ids)
+            except Teacher.DoesNotExist:
+                qs = qs.none()
+
         if search:
             qs = qs.filter(
                 Q(user__full_name__icontains=search) |
@@ -227,8 +238,8 @@ class StudentListView(View):
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
-        faculties = Student.objects.values_list('faculty', flat=True).distinct().order_by('faculty')
-        groups = Student.objects.values_list('group', flat=True).distinct().order_by('group')
+        faculties = qs.values_list('faculty', flat=True).distinct().order_by('faculty')
+        groups = qs.values_list('group', flat=True).distinct().order_by('group')
 
         context = {
             'page_obj': page_obj,
@@ -248,7 +259,17 @@ class StudentDetailView(View):
     template_name = 'dashboard/student_detail.html'
 
     def get(self, request, pk):
-        if request.user.role not in [UserRole.ADMIN, UserRole.TEACHER]:
+        if request.user.role == UserRole.TEACHER:
+            try:
+                teacher = request.user.teacher_profile
+                is_own_student = Grade.objects.filter(
+                    subject__teacher=teacher, student_id=pk
+                ).exists()
+                if not is_own_student:
+                    return HttpResponse('403 Forbidden', status=403)
+            except Teacher.DoesNotExist:
+                return HttpResponse('403 Forbidden', status=403)
+        elif request.user.role not in [UserRole.ADMIN, UserRole.TEACHER]:
             if request.user.role == UserRole.STUDENT:
                 try:
                     if request.user.student_profile.pk != pk:
