@@ -70,6 +70,21 @@ class AdminDashboardView(View):
             'subjects': t.subject_count,
         } for t in teachers]
 
+        # Grade management data for admin
+        all_students_qs = Student.objects.select_related('user').order_by('user__full_name')
+        subjects_with_grades = []
+        for subj in Subject.objects.select_related('teacher__user').order_by('name'):
+            grades = Grade.objects.filter(subject=subj).select_related('student__user').order_by('-total_score')
+            graded_ids = set(grades.values_list('student_id', flat=True))
+            ungraded = [s for s in all_students_qs if s.pk not in graded_ids]
+            subjects_with_grades.append({
+                'subject': subj,
+                'grades': grades,
+                'avg_score': subj.get_average_score(),
+                'pass_rate': subj.get_pass_rate(),
+                'ungraded_students': ungraded,
+            })
+
         context = {
             'summary': summary,
             'top_students': top_students,
@@ -83,6 +98,7 @@ class AdminDashboardView(View):
             'all_students_json': json.dumps(all_students),
             'all_subjects_json': json.dumps(all_subjects),
             'teachers_json': json.dumps(teachers_data),
+            'subjects_with_grades': subjects_with_grades,
         }
         return render(request, self.template_name, context)
 
@@ -264,20 +280,26 @@ class StudentDetailView(View):
         return render(request, self.template_name, context)
 
 
-# ─── Grade Management (Teacher) ───────────────────────────────────────────────
+# ─── Grade Management (Admin & Teacher) ──────────────────────────────────────
+
+def _grade_redirect(request):
+    """Redirect back to the appropriate dashboard after a grade action."""
+    if request.user.role == UserRole.ADMIN:
+        return redirect('dashboard:admin')
+    return redirect('dashboard:teacher')
+
 
 @method_decorator(login_required, name='dispatch')
 class GradeCreateView(View):
-    """Create a grade for a student in a subject (teacher only)."""
+    """
+    Create a grade for a student in a subject.
+    Admin: any subject. Teacher: only their own subjects.
+    """
 
     def post(self, request):
-        if request.user.role != UserRole.TEACHER:
+        role = request.user.role
+        if role not in (UserRole.ADMIN, UserRole.TEACHER):
             return JsonResponse({'error': 'Forbidden'}, status=403)
-
-        try:
-            teacher = request.user.teacher_profile
-        except Teacher.DoesNotExist:
-            return JsonResponse({'error': 'No teacher profile'}, status=403)
 
         subject_id = request.POST.get('subject_id')
         student_id = request.POST.get('student_id')
@@ -285,12 +307,20 @@ class GradeCreateView(View):
         final_score = request.POST.get('final')
         attendance = request.POST.get('attendance')
 
-        subject = get_object_or_404(Subject, pk=subject_id, teacher=teacher)
+        if role == UserRole.TEACHER:
+            try:
+                teacher = request.user.teacher_profile
+            except Teacher.DoesNotExist:
+                return JsonResponse({'error': 'No teacher profile'}, status=403)
+            subject = get_object_or_404(Subject, pk=subject_id, teacher=teacher)
+        else:
+            subject = get_object_or_404(Subject, pk=subject_id)
+
         student = get_object_or_404(Student, pk=student_id)
 
         if Grade.objects.filter(student=student, subject=subject).exists():
             messages.error(request, f'Grade already exists for {student.full_name} in {subject.name}.')
-            return redirect('dashboard:teacher')
+            return _grade_redirect(request)
 
         try:
             grade = Grade(
@@ -302,27 +332,33 @@ class GradeCreateView(View):
             )
             grade.full_clean()
             grade.save()
-            messages.success(request, f'Grade added for {student.full_name}.')
+            messages.success(request, f'Grade added for {student.full_name} in {subject.name}.')
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
-        return redirect('dashboard:teacher')
+        return _grade_redirect(request)
 
 
 @method_decorator(login_required, name='dispatch')
 class GradeUpdateView(View):
-    """Update an existing grade (teacher only)."""
+    """
+    Update an existing grade.
+    Admin: any grade. Teacher: only grades in their subjects.
+    """
 
     def post(self, request, pk):
-        if request.user.role != UserRole.TEACHER:
+        role = request.user.role
+        if role not in (UserRole.ADMIN, UserRole.TEACHER):
             return JsonResponse({'error': 'Forbidden'}, status=403)
 
-        try:
-            teacher = request.user.teacher_profile
-        except Teacher.DoesNotExist:
-            return JsonResponse({'error': 'No teacher profile'}, status=403)
-
-        grade = get_object_or_404(Grade, pk=pk, subject__teacher=teacher)
+        if role == UserRole.TEACHER:
+            try:
+                teacher = request.user.teacher_profile
+            except Teacher.DoesNotExist:
+                return JsonResponse({'error': 'No teacher profile'}, status=403)
+            grade = get_object_or_404(Grade, pk=pk, subject__teacher=teacher)
+        else:
+            grade = get_object_or_404(Grade, pk=pk)
 
         try:
             grade.midterm = float(request.POST.get('midterm', grade.midterm))
@@ -334,25 +370,32 @@ class GradeUpdateView(View):
         except Exception as e:
             messages.error(request, f'Error: {e}')
 
-        return redirect('dashboard:teacher')
+        return _grade_redirect(request)
 
 
 @method_decorator(login_required, name='dispatch')
 class GradeDeleteView(View):
-    """Delete a grade (teacher only)."""
+    """
+    Delete a grade.
+    Admin: any grade. Teacher: only grades in their subjects.
+    """
 
     def post(self, request, pk):
-        if request.user.role != UserRole.TEACHER:
+        role = request.user.role
+        if role not in (UserRole.ADMIN, UserRole.TEACHER):
             return JsonResponse({'error': 'Forbidden'}, status=403)
 
-        try:
-            teacher = request.user.teacher_profile
-        except Teacher.DoesNotExist:
-            return JsonResponse({'error': 'No teacher profile'}, status=403)
+        if role == UserRole.TEACHER:
+            try:
+                teacher = request.user.teacher_profile
+            except Teacher.DoesNotExist:
+                return JsonResponse({'error': 'No teacher profile'}, status=403)
+            grade = get_object_or_404(Grade, pk=pk, subject__teacher=teacher)
+        else:
+            grade = get_object_or_404(Grade, pk=pk)
 
-        grade = get_object_or_404(Grade, pk=pk, subject__teacher=teacher)
         name = grade.student.full_name
         subject_name = grade.subject.name
         grade.delete()
         messages.success(request, f'Grade deleted for {name} in {subject_name}.')
-        return redirect('dashboard:teacher')
+        return _grade_redirect(request)
