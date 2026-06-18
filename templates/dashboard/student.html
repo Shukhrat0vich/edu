@@ -4,78 +4,204 @@
 
 {% block extra_css %}
 <style>
-  .rec-card { border-left: 4px solid; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 0.88rem; }
-  .rec-danger  { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
-  .rec-warning { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
-  .rec-info    { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
-  .rec-success { border-color: #10b981; background: #f0fdf4; color: #065f46; }
-  .vs-positive { color: #10b981; font-weight: 600; }
-  .vs-negative { color: #ef4444; font-weight: 600; }
-  .scenario-result { font-size: 1.4rem; font-weight: 700; }
-  .subject-modal-bar { height: 8px; border-radius: 4px; }
-  .rank-badge { font-size: 1.1rem; font-weight: 700; }
+/* ── Hero Profile Banner ─────────────────────────────────────────────── */
+.profile-hero {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 60%, #1a1040 100%);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+  color: white;
+}
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  width: 340px; height: 340px;
+  border-radius: 50%;
+  background: rgba(59,130,246,0.12);
+  top: -120px; right: -80px;
+}
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(139,92,246,0.1);
+  bottom: -80px; left: 20%;
+}
+.profile-hero-content { position: relative; z-index: 1; }
+.profile-avatar {
+  width: 72px; height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; color: white;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.15);
+}
+.hero-name { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.3px; }
+.hero-meta { color: rgba(255,255,255,0.55); font-size: 13px; margin-top: 3px; }
+.hero-stat-pill {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 10px 18px;
+  text-align: center;
+  min-width: 90px;
+}
+.hero-stat-value { font-size: 20px; font-weight: 800; line-height: 1; }
+.hero-stat-label { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 3px; letter-spacing: 0.5px; text-transform: uppercase; }
+.hero-risk-safe   { background: rgba(16,185,129,0.18); border-color: rgba(16,185,129,0.35); color: #6ee7b7; }
+.hero-risk-danger { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); color: #fca5a5; }
+.rank-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(245,158,11,0.18); border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 20px; padding: 4px 12px;
+  color: #fcd34d; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.rank-pill:hover { background: rgba(245,158,11,0.28); }
+
+/* ── Section Title ───────────────────────────────────────────────────── */
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #64748b; margin-bottom: 12px;
+}
+
+/* ── Recommendation Cards ─────────────────────────────────────────────── */
+.rec-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 13px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500; line-height: 1.45;
+}
+.rec-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; margin-top: 1px;
+}
+.rec-danger  { background: #fef2f2; color: #991b1b; }
+.rec-danger .rec-icon  { background: #fee2e2; color: #dc2626; }
+.rec-warning { background: #fffbeb; color: #78350f; }
+.rec-warning .rec-icon { background: #fef3c7; color: #d97706; }
+.rec-info    { background: #eff6ff; color: #1e40af; }
+.rec-info .rec-icon    { background: #dbeafe; color: #2563eb; }
+.rec-success { background: #f0fdf4; color: #14532d; }
+.rec-success .rec-icon { background: #dcfce7; color: #16a34a; }
+
+/* ── Subject Table ───────────────────────────────────────────────────── */
+.subject-row { cursor: pointer; transition: background 0.15s; }
+.subject-row:hover { background: #f8fafc !important; }
+.vs-up   { color: #10b981; font-weight: 700; font-size: 12px; }
+.vs-down { color: #ef4444; font-weight: 700; font-size: 12px; }
+.grade-dot {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: white;
+}
+.gd-A { background: #10b981; }
+.gd-B { background: #3b82f6; }
+.gd-C { background: #06b6d4; }
+.gd-D { background: #f59e0b; }
+.gd-F { background: #ef4444; }
+
+/* ── Scenario Planner ─────────────────────────────────────────────────── */
+.scenario-card {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  border-radius: 16px;
+  padding: 28px;
+  color: white;
+}
+.scenario-card .form-range::-webkit-slider-thumb { background: #6366f1; }
+.scenario-result-box {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.scenario-big { font-size: 52px; font-weight: 900; line-height: 1; }
+.scenario-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.45); margin-top: 4px; }
+.sc-safe { color: #34d399; }
+.sc-warning { color: #fbbf24; }
+.sc-danger { color: #f87171; }
+.slider-row label { font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.slider-val { font-size: 15px; font-weight: 700; color: white; min-width: 36px; text-align: right; }
+
+/* ── Subject Deep-Dive Modal ──────────────────────────────────────────── */
+.modal-stat-box {
+  background: #f8fafc; border-radius: 10px; padding: 14px; text-align: center;
+}
+.modal-stat-value { font-size: 20px; font-weight: 800; }
+.modal-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-top: 2px; }
+.compare-bar-wrap { margin-bottom: 12px; }
+.compare-label { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 4px; }
+.tip-box { background: #f8fafc; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #475569; border-left: 3px solid #6366f1; }
+
+/* ── Rank Modal ───────────────────────────────────────────────────────── */
+.rank-modal-number { font-size: 72px; font-weight: 900; line-height: 1; color: #3b82f6; }
+
+/* ── Smooth hover for clickable cards ────────────────────────────────── */
+[role=button] { cursor: pointer; }
+[role=button]:hover { transform: translateY(-2px); transition: transform 0.2s; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-  <div>
-    <h1 class="page-title"><i class="bi bi-person-circle me-2 text-success"></i>My Performance</h1>
-    <p class="page-subtitle">{{ student.full_name }} — {{ student.faculty }} · {{ student.group }}</p>
-  </div>
-  <a href="{% url 'dashboard:predict' %}" class="btn btn-outline-primary btn-sm">
-    <i class="bi bi-cpu me-1"></i>ML Predictor
-  </a>
-</div>
 
-<!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
-<div class="row g-4 mb-4">
-  <div class="col-6 col-xl-3">
-    <div class="kpi-card {% if summary.gpa >= 3.0 %}kpi-green{% elif summary.gpa >= 2.0 %}kpi-blue{% else %}kpi-red{% endif %}">
-      <div class="kpi-icon"><i class="bi bi-award-fill"></i></div>
-      <div class="kpi-body">
-        <div class="kpi-value">{{ summary.gpa }}</div>
-        <div class="kpi-label">My GPA</div>
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- PROFILE HERO BANNER                                                   -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="profile-hero">
+  <div class="profile-hero-content">
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+      <div class="profile-avatar">{{ student.full_name|slice:":1" }}</div>
+      <div>
+        <div class="hero-name">{{ student.full_name }}</div>
+        <div class="hero-meta">
+          <i class="bi bi-building me-1"></i>{{ student.faculty }}
+          &nbsp;·&nbsp;
+          <i class="bi bi-people me-1"></i>{{ student.group }}
+          &nbsp;·&nbsp;
+          <i class="bi bi-calendar3 me-1"></i>{{ student.enrollment_year }} cohort
+        </div>
+        {% if summary.rank %}
+        <div class="mt-2">
+          <span class="rank-pill" data-bs-toggle="modal" data-bs-target="#rankModal">
+            <i class="bi bi-trophy-fill"></i>
+            Rank #{{ summary.rank }} · Top {{ summary.percentile }}%
+          </span>
+        </div>
+        {% endif %}
       </div>
     </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="kpi-card kpi-blue">
-      <div class="kpi-icon"><i class="bi bi-graph-up"></i></div>
-      <div class="kpi-body">
-        <div class="kpi-value">{{ summary.avg_score }}</div>
-        <div class="kpi-label">Average Score</div>
+
+    <div class="d-flex gap-3 flex-wrap">
+      <div class="hero-stat-pill">
+        <div class="hero-stat-value">{{ summary.gpa }}</div>
+        <div class="hero-stat-label">GPA</div>
       </div>
-    </div>
-  </div>
-  <div class="col-6 col-xl-3">
-    {% if summary.rank %}
-    <div class="kpi-card {% if summary.percentile >= 75 %}kpi-green{% elif summary.percentile >= 50 %}kpi-blue{% else %}kpi-purple{% endif %}"
-         role="button" data-bs-toggle="modal" data-bs-target="#rankModal" title="See class ranking">
-      <div class="kpi-icon"><i class="bi bi-trophy-fill"></i></div>
-      <div class="kpi-body">
-        <div class="kpi-value">#{{ summary.rank }}</div>
-        <div class="kpi-label">Class Rank · Top {{ summary.percentile }}%</div>
+      <div class="hero-stat-pill">
+        <div class="hero-stat-value">{{ summary.avg_score }}</div>
+        <div class="hero-stat-label">Avg Score</div>
       </div>
-    </div>
-    {% else %}
-    <div class="kpi-card kpi-green">
-      <div class="kpi-icon"><i class="bi bi-star-fill"></i></div>
-      <div class="kpi-body">
-        <div class="kpi-value">{{ summary.best_score }}</div>
-        <div class="kpi-label">Best Score</div>
+      <div class="hero-stat-pill">
+        <div class="hero-stat-value">{{ summary.best_score }}</div>
+        <div class="hero-stat-label">Best</div>
       </div>
-    </div>
-    {% endif %}
-  </div>
-  <div class="col-6 col-xl-3">
-    <div class="kpi-card {% if summary.at_risk %}kpi-red{% else %}kpi-purple{% endif %}">
-      <div class="kpi-icon">
-        <i class="bi bi-{% if summary.at_risk %}exclamation-triangle-fill{% else %}shield-check-fill{% endif %}"></i>
+      <div class="hero-stat-pill">
+        <div class="hero-stat-value">{{ summary.worst_score }}</div>
+        <div class="hero-stat-label">Lowest</div>
       </div>
-      <div class="kpi-body">
-        <div class="kpi-value">{% if summary.at_risk %}At Risk{% else %}Safe{% endif %}</div>
-        <div class="kpi-label">Risk Status</div>
+      <div class="hero-stat-pill {% if summary.at_risk %}hero-risk-danger{% else %}hero-risk-safe{% endif %}">
+        <div class="hero-stat-value">
+          {% if summary.at_risk %}<i class="bi bi-exclamation-triangle-fill"></i>{% else %}<i class="bi bi-shield-check-fill"></i>{% endif %}
+        </div>
+        <div class="hero-stat-label">{% if summary.at_risk %}At Risk{% else %}Safe{% endif %}</div>
+      </div>
+      <div class="hero-stat-pill">
+        <div class="hero-stat-value">{{ summary.subject_count }}</div>
+        <div class="hero-stat-label">Subjects</div>
       </div>
     </div>
   </div>
@@ -83,305 +209,377 @@
 
 <!-- ── Risk Alert ─────────────────────────────────────────────────────────── -->
 {% if summary.at_risk %}
-<div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
-  <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+<div class="alert alert-danger d-flex align-items-center gap-3 mb-4 rounded-3" role="alert" style="border: none; background: #fef2f2;">
+  <div style="width:40px;height:40px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+  </div>
   <div>
-    <strong>Academic Risk Alert!</strong> Your performance indicates you may be at risk.
-    Use the <a href="{% url 'dashboard:predict' %}" class="alert-link">ML Prediction tool</a>
-    to see what improvements are needed.
-  </div>
-</div>
-{% endif %}
-
-<!-- ── Recommendations ────────────────────────────────────────────────────── -->
-{% if summary.recommendations %}
-<div class="data-card mb-4">
-  <div class="data-card-header">
-    <h5><i class="bi bi-lightbulb-fill me-2 text-warning"></i>Personalized Recommendations</h5>
-  </div>
-  <div class="p-3">
-    {% for rec in summary.recommendations %}
-    <div class="rec-card rec-{{ rec.type }}">
-      <i class="bi {{ rec.icon }} me-2"></i>{{ rec.text }}
+    <strong style="color:#991b1b;">Academic Risk Detected</strong>
+    <div style="color:#b91c1c;font-size:13px;margin-top:2px;">
+      Your current performance puts you at risk of failing. Use the
+      <a href="{% url 'dashboard:predict' %}" class="fw-bold" style="color:#dc2626;">ML Predictor</a>
+      to understand what improvements will help most.
     </div>
-    {% endfor %}
   </div>
 </div>
 {% endif %}
 
-<!-- ── Charts ─────────────────────────────────────────────────────────────── -->
+<!-- ── Main Grid ──────────────────────────────────────────────────────────── -->
 <div class="row g-4 mb-4">
+
+  <!-- Left: Charts -->
   <div class="col-12 col-xl-8">
-    <div class="chart-card">
+    <div class="chart-card h-100">
       <div class="chart-card-header">
-        <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Performance by Subject</h5>
-        <small class="text-muted">Purple = your score · Gray = class average</small>
+        <div>
+          <h5 style="font-size:15px;font-weight:700;">Performance by Subject</h5>
+          <div class="text-muted" style="font-size:12px;margin-top:2px;">Your scores vs class average</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center" style="font-size:11px;color:#94a3b8;">
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,0.7);display:inline-block;"></span> Total</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:2px;background:#94a3b8;display:inline-block;"></span> Class Avg</span>
+        </div>
       </div>
-      <canvas id="subjectChart" height="130"></canvas>
+      <canvas id="subjectChart" height="135"></canvas>
     </div>
   </div>
+
+  <!-- Right: Radar + ML prediction summary -->
   <div class="col-12 col-xl-4">
-    <div class="chart-card">
+    <div class="chart-card mb-4" style="padding-bottom:12px;">
       <div class="chart-card-header">
-        <h5><i class="bi bi-radar me-2 text-info"></i>Score Breakdown</h5>
+        <h5 style="font-size:14px;font-weight:700;">Score Breakdown</h5>
+        <span style="font-size:11px;color:#94a3b8;">Radar vs class</span>
       </div>
-      <canvas id="radarChart" height="200"></canvas>
+      <canvas id="radarChart" height="190"></canvas>
     </div>
+
+    {% if prediction %}
+    <div class="prediction-card" style="border-radius:14px;">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-cpu-fill" style="color:#818cf8;"></i>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;">ML Prediction</div>
+          <div style="font-size:11px;color:#64748b;">Predicted final score</div>
+        </div>
+        <div class="ms-auto">
+          <div class="risk-badge risk-{{ prediction.risk_level }}">{{ prediction.risk_label }}</div>
+        </div>
+      </div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="score-circle {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}" style="width:64px;height:64px;font-size:18px;">
+          {{ prediction.predicted_final }}
+        </div>
+        <div style="font-size:12px;color:#94a3b8;flex:1;padding-left:14px;">
+          <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-25 py-1"><span>Predicted Total</span><strong style="color:white;">{{ prediction.predicted_total_score }}</strong></div>
+          <div class="d-flex justify-content-between py-1"><span>Current GPA</span><strong style="color:white;">{{ summary.gpa }}</strong></div>
+        </div>
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-sm flex-fill" style="background:rgba(255,255,255,0.08);color:#e2e8f0;border:1px solid rgba(255,255,255,0.12);font-size:12px;" data-bs-toggle="modal" data-bs-target="#scenarioModal">
+          <i class="bi bi-sliders me-1"></i>Scenario Planner
+        </button>
+        <a href="{% url 'dashboard:predict' %}" class="btn btn-sm flex-fill" style="background:rgba(99,102,241,0.25);color:#c7d2fe;border:1px solid rgba(99,102,241,0.35);font-size:12px;">
+          <i class="bi bi-arrow-right me-1"></i>Full Predictor
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </div>
+
 </div>
 
-<!-- ── ML Prediction Card ─────────────────────────────────────────────────── -->
-{% if prediction %}
-<div class="prediction-card mb-4">
-  <div class="prediction-header">
-    <h5><i class="bi bi-cpu-fill me-2"></i>ML Performance Prediction</h5>
-    <small>Based on your current attendance and midterm performance</small>
-  </div>
-  <div class="prediction-body">
-    <div class="prediction-score">
-      <div class="score-circle {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}">
-        {{ prediction.predicted_final }}
+<!-- ── Recommendations + Scenario Planner ─────────────────────────────────── -->
+<div class="row g-4 mb-4">
+
+  {% if summary.recommendations %}
+  <div class="col-12 col-xl-5">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <h5><i class="bi bi-lightbulb-fill me-2" style="color:#f59e0b;"></i>Smart Recommendations</h5>
+        <span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;">{{ summary.recommendations|length }} tip{{ summary.recommendations|length|pluralize }}</span>
       </div>
-      <div>
-        <div class="prediction-label">Predicted Final Score</div>
-        <div class="risk-badge risk-{{ prediction.risk_level }}">{{ prediction.risk_label }}</div>
-      </div>
-    </div>
-    <div class="prediction-details">
-      <div class="pred-detail">
-        <span>Predicted Total</span>
-        <strong>{{ prediction.predicted_total_score }}</strong>
-      </div>
-      <div class="pred-detail">
-        <span>Attendance Used</span>
-        <strong>{{ prediction.input.attendance }}%</strong>
-      </div>
-      <div class="pred-detail">
-        <span>Midterm Used</span>
-        <strong>{{ prediction.input.midterm }}</strong>
+      <div class="p-3 d-flex flex-column gap-2">
+        {% for rec in summary.recommendations %}
+        <div class="rec-item rec-{{ rec.type }}">
+          <div class="rec-icon"><i class="bi {{ rec.icon }}"></i></div>
+          <div>{{ rec.text }}</div>
+        </div>
+        {% endfor %}
       </div>
     </div>
   </div>
-  <div class="text-end mt-2">
-    <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#scenarioModal">
-      <i class="bi bi-sliders me-1"></i>Scenario Planner
-    </button>
-    <a href="{% url 'dashboard:predict' %}" class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-cpu me-1"></i>Full ML Predictor
-    </a>
+  {% endif %}
+
+  <!-- Inline Scenario Planner (always visible) -->
+  <div class="col-12 {% if summary.recommendations %}col-xl-7{% endif %}">
+    <div class="scenario-card h-100">
+      <div class="d-flex align-items-center gap-2 mb-4">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;">
+          <i class="bi bi-calculator-fill" style="color:#818cf8;"></i>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;">Scenario Planner</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);">What if I scored differently?</div>
+        </div>
+      </div>
+
+      <div class="row g-3 align-items-center">
+        <div class="col-12 col-md-8">
+          <div class="d-flex flex-column gap-3">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="slider-row label">Midterm</label>
+                <span class="slider-val" id="sc-midterm-val">60</span>
+              </div>
+              <input type="range" class="form-range" id="sc-midterm" min="0" max="100" value="60" oninput="calcScenario()">
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="slider-row label">Final Exam</label>
+                <span class="slider-val" id="sc-final-val">60</span>
+              </div>
+              <input type="range" class="form-range" id="sc-final" min="0" max="100" value="60" oninput="calcScenario()">
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="slider-row label">Attendance %</label>
+                <span class="slider-val" id="sc-attendance-val">80</span>
+              </div>
+              <input type="range" class="form-range" id="sc-attendance" min="0" max="100" value="80" oninput="calcScenario()">
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">
+              Formula: Midterm × 30% + Final × 50% + Attendance × 20%
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="scenario-result-box">
+            <div class="scenario-label">Total Score</div>
+            <div class="scenario-big sc-safe" id="sc-total">62.0</div>
+            <div class="mt-2" id="sc-grade-badge"></div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:8px;" id="sc-status-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+
 </div>
-{% endif %}
 
 <!-- ── Grades Table ────────────────────────────────────────────────────────── -->
 <div class="data-card mb-4">
   <div class="data-card-header">
-    <h5><i class="bi bi-table me-2 text-primary"></i>My Grades</h5>
-    <span class="badge bg-secondary">{{ summary.subject_count }} subject{{ summary.subject_count|pluralize }}</span>
+    <div>
+      <h5 style="font-size:15px;font-weight:700;"><i class="bi bi-table me-2 text-primary"></i>My Grades</h5>
+      <div class="text-muted" style="font-size:12px;margin-top:2px;">Click any row for subject details</div>
+    </div>
+    <span class="badge bg-secondary" style="font-size:12px;">{{ summary.subject_count }} subject{{ summary.subject_count|pluralize }}</span>
   </div>
   <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead>
-        <tr>
-          <th>Subject</th><th>Midterm</th><th>Final</th><th>Attendance</th>
-          <th>Total Score</th><th>vs Class</th><th>Grade</th><th></th>
+    <table class="table align-middle mb-0" style="font-size:13.5px;">
+      <thead style="background:#f8fafc;">
+        <tr style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">
+          <th class="ps-4 py-3 fw-600">Subject</th>
+          <th class="py-3">Midterm</th>
+          <th class="py-3">Final</th>
+          <th class="py-3">Attendance</th>
+          <th class="py-3">Total</th>
+          <th class="py-3">vs Class</th>
+          <th class="py-3 text-center">Grade</th>
         </tr>
       </thead>
       <tbody>
         {% for s in summary.subjects %}
-        <tr>
-          <td class="fw-semibold">{{ s.subject }}</td>
-          <td>{{ s.midterm|floatformat:1 }}</td>
-          <td>{{ s.final|floatformat:1 }}</td>
-          <td>
+        <tr class="subject-row border-top"
+            onclick="openSubjectModal('{{ s.subject|escapejs }}', {{ s.midterm }}, {{ s.final }}, {{ s.attendance }}, {{ s.total_score }}, {{ s.class_avg }})">
+          <td class="ps-4 py-3 fw-semibold" style="color:#1e293b;">
+            {{ s.subject }}
+          </td>
+          <td class="py-3">
             <div class="d-flex align-items-center gap-2">
-              <div class="progress" style="width:60px;height:6px">
+              <div class="progress" style="width:44px;height:4px;border-radius:2px;">
+                <div class="progress-bar bg-primary" style="width:{{ s.midterm }}%"></div>
+              </div>
+              <span>{{ s.midterm|floatformat:1 }}</span>
+            </div>
+          </td>
+          <td class="py-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress" style="width:44px;height:4px;border-radius:2px;">
+                <div class="progress-bar bg-success" style="width:{{ s.final }}%"></div>
+              </div>
+              <span>{{ s.final|floatformat:1 }}</span>
+            </div>
+          </td>
+          <td class="py-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress" style="width:44px;height:5px;border-radius:2px;">
                 <div class="progress-bar {% if s.attendance >= 75 %}bg-success{% else %}bg-warning{% endif %}"
                      style="width:{{ s.attendance }}%"></div>
               </div>
-              <small>{{ s.attendance|floatformat:0 }}%
+              <span>{{ s.attendance|floatformat:0 }}%
                 {% if s.attendance < 75 %}<i class="bi bi-exclamation-circle text-warning ms-1" title="Low attendance"></i>{% endif %}
-              </small>
+              </span>
             </div>
           </td>
-          <td>
+          <td class="py-3">
             <div class="d-flex align-items-center gap-2">
-              <div class="progress flex-grow-1" style="height:7px">
+              <div class="progress" style="width:52px;height:6px;border-radius:3px;">
                 <div class="progress-bar {% if s.total_score >= 70 %}bg-success{% elif s.total_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
                      style="width:{{ s.total_score }}%"></div>
               </div>
               <strong>{{ s.total_score|floatformat:1 }}</strong>
             </div>
           </td>
-          <td>
+          <td class="py-3">
             {% if s.vs_class >= 0 %}
-            <span class="vs-positive">+{{ s.vs_class }}</span>
+            <span class="vs-up"><i class="bi bi-arrow-up-short"></i>+{{ s.vs_class }}</span>
             {% else %}
-            <span class="vs-negative">{{ s.vs_class }}</span>
+            <span class="vs-down"><i class="bi bi-arrow-down-short"></i>{{ s.vs_class }}</span>
             {% endif %}
-            <small class="text-muted ms-1">avg {{ s.class_avg }}</small>
+            <div style="font-size:11px;color:#94a3b8;">avg {{ s.class_avg }}</div>
           </td>
-          <td>
-            <span class="badge fs-6 {% if s.letter == 'A' %}bg-success{% elif s.letter == 'B' %}bg-primary{% elif s.letter == 'C' %}bg-info text-dark{% elif s.letter == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
-              {{ s.letter }}
-            </span>
-          </td>
-          <td>
-            <button class="btn btn-xs btn-outline-secondary py-0 px-1"
-                    onclick="openSubjectModal('{{ s.subject|escapejs }}', {{ s.midterm }}, {{ s.final }}, {{ s.attendance }}, {{ s.total_score }}, {{ s.class_avg }})"
-                    title="Subject details">
-              <i class="bi bi-zoom-in"></i>
-            </button>
+          <td class="py-3 text-center">
+            <div class="grade-dot gd-{{ s.letter }}">{{ s.letter }}</div>
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
+        <tr>
+          <td colspan="7" class="text-center py-5">
+            <div style="font-size:40px;margin-bottom:10px;">📊</div>
+            <div class="fw-semibold text-muted">No grades recorded yet</div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- ── Scenario Planner ───────────────────────────────────────────────────── -->
-<div class="data-card mb-4">
-  <div class="data-card-header">
-    <h5><i class="bi bi-calculator me-2 text-info"></i>Scenario Planner</h5>
-    <small class="text-muted">What if I scored differently?</small>
-  </div>
-  <div class="p-3">
-    <div class="row g-3 align-items-end">
-      <div class="col-sm-3">
-        <label class="form-label fw-semibold">Midterm Score</label>
-        <input type="range" class="form-range" id="sc-midterm" min="0" max="100" value="60" oninput="calcScenario()">
-        <div class="text-center"><span id="sc-midterm-val">60</span></div>
-      </div>
-      <div class="col-sm-3">
-        <label class="form-label fw-semibold">Final Score</label>
-        <input type="range" class="form-range" id="sc-final" min="0" max="100" value="60" oninput="calcScenario()">
-        <div class="text-center"><span id="sc-final-val">60</span></div>
-      </div>
-      <div class="col-sm-3">
-        <label class="form-label fw-semibold">Attendance %</label>
-        <input type="range" class="form-range" id="sc-attendance" min="0" max="100" value="80" oninput="calcScenario()">
-        <div class="text-center"><span id="sc-attendance-val">80</span></div>
-      </div>
-      <div class="col-sm-3 text-center">
-        <div class="text-muted small mb-1">Total Score</div>
-        <div class="scenario-result" id="sc-total">62.0</div>
-        <div id="sc-grade-badge" class="mt-1"></div>
-      </div>
-    </div>
-    <div class="text-muted small mt-2">Formula: Midterm×30% + Final×50% + Attendance×20%</div>
-  </div>
-</div>
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- MODALS                                                                -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
 
-<!-- ── Subject Deep-Dive Modal ────────────────────────────────────────────── -->
+<!-- Subject Deep-Dive Modal -->
 <div class="modal fade" id="subjectModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-zoom-in me-2 text-primary"></i><span id="sm-subject"></span></h5>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div class="modal-header border-0 pb-0 px-4 pt-4">
+        <div>
+          <h5 class="modal-title fw-700" style="font-size:16px;" id="sm-subject"></h5>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">Subject performance breakdown</div>
+        </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="row g-3 text-center mb-3">
+      <div class="modal-body px-4 pb-4 pt-3">
+        <div class="row g-3 mb-4">
           <div class="col-4">
-            <div class="border rounded p-2">
-              <div class="fs-5 fw-bold text-primary" id="sm-midterm"></div>
-              <div class="small text-muted">Midterm</div>
+            <div class="modal-stat-box">
+              <div class="modal-stat-value text-primary" id="sm-midterm"></div>
+              <div class="modal-stat-label">Midterm</div>
             </div>
           </div>
           <div class="col-4">
-            <div class="border rounded p-2">
-              <div class="fs-5 fw-bold text-success" id="sm-final"></div>
-              <div class="small text-muted">Final</div>
+            <div class="modal-stat-box">
+              <div class="modal-stat-value text-success" id="sm-final"></div>
+              <div class="modal-stat-label">Final</div>
             </div>
           </div>
           <div class="col-4">
-            <div class="border rounded p-2">
-              <div class="fs-5 fw-bold text-warning" id="sm-attendance"></div>
-              <div class="small text-muted">Attendance</div>
+            <div class="modal-stat-box">
+              <div class="modal-stat-value text-warning" id="sm-attendance"></div>
+              <div class="modal-stat-label">Attendance</div>
             </div>
           </div>
         </div>
-        <hr>
-        <div class="mb-3">
-          <div class="d-flex justify-content-between mb-1">
-            <span class="small">Your Score</span>
-            <strong id="sm-total-text"></strong>
-          </div>
-          <div class="progress" style="height:12px">
-            <div class="progress-bar bg-primary" id="sm-total-bar" style="width:0%"></div>
+
+        <div class="compare-bar-wrap">
+          <div class="compare-label"><span>Your Total Score</span><strong id="sm-total-text"></strong></div>
+          <div class="progress" style="height:10px;border-radius:5px;">
+            <div class="progress-bar bg-primary" id="sm-total-bar" style="width:0%;border-radius:5px;"></div>
           </div>
         </div>
-        <div class="mb-3">
-          <div class="d-flex justify-content-between mb-1">
-            <span class="small">Class Average</span>
-            <strong id="sm-class-text"></strong>
-          </div>
-          <div class="progress" style="height:12px">
-            <div class="progress-bar bg-secondary" id="sm-class-bar" style="width:0%"></div>
+        <div class="compare-bar-wrap">
+          <div class="compare-label"><span>Class Average</span><strong id="sm-class-text"></strong></div>
+          <div class="progress" style="height:10px;border-radius:5px;">
+            <div class="progress-bar" id="sm-class-bar" style="width:0%;background:#e2e8f0;border-radius:5px;"></div>
           </div>
         </div>
-        <div class="text-center mt-3">
-          <span class="badge bg-light text-dark border fs-6" id="sm-vs-class"></span>
+
+        <div class="text-center my-3">
+          <span class="badge px-3 py-2 fs-6" id="sm-vs-badge"></span>
         </div>
-        <div class="mt-3 p-2 bg-light rounded small" id="sm-tip"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+
+        <div class="tip-box" id="sm-tip"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── Rank Modal ─────────────────────────────────────────────────────────── -->
+<!-- Rank Modal -->
 <div class="modal fade" id="rankModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-trophy-fill me-2 text-warning"></i>Class Ranking</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body text-center">
-        <div class="display-4 fw-bold text-primary">#{{ summary.rank }}</div>
-        <div class="text-muted mb-3">out of {{ summary.total_students }} students</div>
-        <div class="progress mb-2" style="height:14px">
-          <div class="progress-bar bg-success" style="width:{{ summary.percentile }}%"></div>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border-radius:16px;border:none;text-align:center;">
+      <div class="modal-body py-4 px-4">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+        <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:4px;">Class Ranking</div>
+        <div class="rank-modal-number">#{{ summary.rank }}</div>
+        <div style="font-size:14px;color:#64748b;margin-top:4px;">out of {{ summary.total_students }} students</div>
+        <div class="progress my-3" style="height:10px;border-radius:5px;">
+          <div class="progress-bar bg-warning" style="width:{{ summary.percentile }}%;border-radius:5px;"></div>
         </div>
-        <div class="fw-semibold">Top {{ summary.percentile }}% of your class</div>
-        <div class="small text-muted mt-2">Based on your overall average score across all subjects</div>
+        <div style="font-size:18px;font-weight:800;color:#f59e0b;">Top {{ summary.percentile }}%</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:8px;">Based on overall average score across all subjects</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── Scenario Modal (from ML card button) ───────────────────────────────── -->
+<!-- Scenario Planner Modal (from ML card) -->
 <div class="modal fade" id="scenarioModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-sliders me-2 text-info"></i>Scenario Planner</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none;background:#0f172a;color:white;">
+      <div class="modal-header border-0 px-4 pt-4 pb-0">
+        <div>
+          <h5 class="modal-title" style="color:white;font-size:16px;font-weight:700;"><i class="bi bi-sliders me-2" style="color:#818cf8;"></i>Scenario Planner</h5>
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);">Drag sliders to simulate different outcomes</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <p class="text-muted small">Adjust the sliders to see how different scores affect your total.</p>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Midterm: <span id="sc2-midterm-val">60</span></label>
-          <input type="range" class="form-range" id="sc2-midterm" min="0" max="100" value="60" oninput="calcScenario2()">
+      <div class="modal-body px-4 pb-4 pt-3">
+        <div class="d-flex flex-column gap-3 mb-4">
+          <div>
+            <div class="d-flex justify-content-between mb-1">
+              <label style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Midterm</label>
+              <span style="font-weight:700;" id="sc2-midterm-val">60</span>
+            </div>
+            <input type="range" class="form-range" id="sc2-midterm" min="0" max="100" value="60" oninput="calcScenario2()">
+          </div>
+          <div>
+            <div class="d-flex justify-content-between mb-1">
+              <label style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Final Exam</label>
+              <span style="font-weight:700;" id="sc2-final-val">60</span>
+            </div>
+            <input type="range" class="form-range" id="sc2-final" min="0" max="100" value="60" oninput="calcScenario2()">
+          </div>
+          <div>
+            <div class="d-flex justify-content-between mb-1">
+              <label style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.5px;font-weight:600;">Attendance %</label>
+              <span style="font-weight:700;" id="sc2-attendance-val">80</span>
+            </div>
+            <input type="range" class="form-range" id="sc2-attendance" min="0" max="100" value="80" oninput="calcScenario2()">
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Final: <span id="sc2-final-val">60</span></label>
-          <input type="range" class="form-range" id="sc2-final" min="0" max="100" value="60" oninput="calcScenario2()">
+        <div class="scenario-result-box">
+          <div class="scenario-label">Predicted Total Score</div>
+          <div class="scenario-big mt-1 sc-safe" id="sc2-total">62.0</div>
+          <div class="mt-2" id="sc2-grade"></div>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Attendance: <span id="sc2-attendance-val">80</span>%</label>
-          <input type="range" class="form-range" id="sc2-attendance" min="0" max="100" value="80" oninput="calcScenario2()">
-        </div>
-        <div class="text-center p-3 bg-light rounded">
-          <div class="text-muted small">Predicted Total Score</div>
-          <div class="display-5 fw-bold" id="sc2-total">62.0</div>
-          <div id="sc2-grade" class="mt-1"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.25);text-align:center;margin-top:10px;">
+          Midterm×30% + Final×50% + Attendance×20%
         </div>
       </div>
     </div>
@@ -394,94 +592,113 @@
 <script>
 const subjectData = {{ subjects_json|safe }};
 
-// ── Performance Bar Chart (with class avg line) ───────────────────────────
-new Chart(document.getElementById('subjectChart'), {
-  type: 'bar',
-  data: {
-    labels: subjectData.map(s => s.subject),
-    datasets: [
-      {
-        label: 'Midterm',
-        data: subjectData.map(s => s.midterm),
-        backgroundColor: 'rgba(59,130,246,0.7)',
-        borderRadius: 4,
+// ── Bar Chart ────────────────────────────────────────────────────────────
+if (subjectData.length) {
+  new Chart(document.getElementById('subjectChart'), {
+    type: 'bar',
+    data: {
+      labels: subjectData.map(s => s.subject),
+      datasets: [
+        {
+          label: 'Midterm',
+          data: subjectData.map(s => s.midterm),
+          backgroundColor: 'rgba(59,130,246,0.65)',
+          borderRadius: 5, borderSkipped: false,
+        },
+        {
+          label: 'Final',
+          data: subjectData.map(s => s.final),
+          backgroundColor: 'rgba(16,185,129,0.65)',
+          borderRadius: 5, borderSkipped: false,
+        },
+        {
+          label: 'Total',
+          data: subjectData.map(s => s.total_score),
+          backgroundColor: 'rgba(99,102,241,0.75)',
+          borderRadius: 5, borderSkipped: false,
+        },
+        {
+          label: 'Class Avg',
+          type: 'line',
+          data: subjectData.map(s => s.class_avg),
+          borderColor: 'rgba(148,163,184,0.7)',
+          backgroundColor: 'transparent',
+          borderDash: [5,3],
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgba(148,163,184,0.9)',
+          tension: 0.3,
+          order: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 14 } },
+        tooltip: { mode: 'index', intersect: false }
       },
-      {
-        label: 'Final',
-        data: subjectData.map(s => s.final),
-        backgroundColor: 'rgba(16,185,129,0.7)',
-        borderRadius: 4,
-      },
-      {
-        label: 'Total',
-        data: subjectData.map(s => s.total_score),
-        backgroundColor: 'rgba(139,92,246,0.7)',
-        borderRadius: 4,
-      },
-      {
-        label: 'Class Avg',
-        data: subjectData.map(s => s.class_avg),
-        type: 'line',
-        borderColor: 'rgba(107,114,128,0.8)',
-        backgroundColor: 'transparent',
-        borderDash: [5, 3],
-        pointRadius: 4,
-        tension: 0.3,
+      scales: {
+        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
       }
-    ]
-  },
-  options: {
-    responsive: true,
-    scales: {
-      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
-      x: { grid: { display: false } }
     }
-  }
-});
+  });
+}
 
-// ── Radar Chart ───────────────────────────────────────────────────────────
-if (subjectData.length > 0) {
+// ── Radar Chart ──────────────────────────────────────────────────────────
+if (subjectData.length) {
   new Chart(document.getElementById('radarChart'), {
     type: 'radar',
     data: {
-      labels: subjectData.slice(0,6).map(s => s.subject.substring(0,12)),
+      labels: subjectData.slice(0,6).map(s => s.subject.length > 10 ? s.subject.substring(0,10) + '…' : s.subject),
       datasets: [
         {
           label: 'My Score',
           data: subjectData.slice(0,6).map(s => s.total_score),
           fill: true,
-          backgroundColor: 'rgba(99,102,241,0.2)',
-          borderColor: 'rgba(99,102,241,0.8)',
-          pointBackgroundColor: 'rgba(99,102,241,0.8)',
+          backgroundColor: 'rgba(99,102,241,0.18)',
+          borderColor: 'rgba(99,102,241,0.9)',
+          pointBackgroundColor: 'rgba(99,102,241,0.9)',
+          pointRadius: 4,
         },
         {
           label: 'Class Avg',
           data: subjectData.slice(0,6).map(s => s.class_avg),
           fill: false,
           backgroundColor: 'transparent',
-          borderColor: 'rgba(156,163,175,0.7)',
-          borderDash: [4, 2],
-          pointBackgroundColor: 'rgba(156,163,175,0.7)',
+          borderColor: 'rgba(148,163,184,0.6)',
+          borderDash: [4,2],
+          pointBackgroundColor: 'rgba(148,163,184,0.6)',
+          pointRadius: 3,
         }
       ]
     },
     options: {
       responsive: true,
-      scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 10 } } },
+      scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 25, font: { size: 9 } } } }
     }
   });
 }
 
 // ── Scenario Planner ──────────────────────────────────────────────────────
-function scoreToGrade(s) {
-  if (s >= 90) return ['A', 'bg-success'];
-  if (s >= 80) return ['B', 'bg-primary'];
-  if (s >= 70) return ['C', 'bg-info text-dark'];
-  if (s >= 60) return ['D', 'bg-warning text-dark'];
-  return ['F', 'bg-danger'];
-}
 function calcTotal(m, f, a) {
   return Math.round((m * 0.3 + f * 0.5 + a * 0.2) * 10) / 10;
+}
+function gradeInfo(s) {
+  if (s >= 90) return ['A', 'sc-safe', 'Excellent — keep it up!'];
+  if (s >= 80) return ['B', 'sc-safe', 'Good performance'];
+  if (s >= 70) return ['C', 'sc-safe', 'Passing — room to improve'];
+  if (s >= 60) return ['D', 'sc-warning', 'Just passing — focus needed'];
+  return ['F', 'sc-danger', 'At risk — major improvement needed'];
+}
+function gradeBadgeClass(s) {
+  if (s >= 90) return 'bg-success';
+  if (s >= 80) return 'bg-primary';
+  if (s >= 70) return 'bg-info text-dark';
+  if (s >= 60) return 'bg-warning text-dark';
+  return 'bg-danger';
 }
 
 function calcScenario() {
@@ -492,9 +709,12 @@ function calcScenario() {
   document.getElementById('sc-final-val').textContent = f;
   document.getElementById('sc-attendance-val').textContent = a;
   const total = calcTotal(m, f, a);
-  const [letter, cls] = scoreToGrade(total);
-  document.getElementById('sc-total').textContent = total.toFixed(1);
-  document.getElementById('sc-grade-badge').innerHTML = `<span class="badge ${cls}">${letter}</span>`;
+  const [letter, colorClass, statusText] = gradeInfo(total);
+  const el = document.getElementById('sc-total');
+  el.textContent = total.toFixed(1);
+  el.className = 'scenario-big ' + colorClass;
+  document.getElementById('sc-grade-badge').innerHTML = `<span class="badge ${gradeBadgeClass(total)} px-3">${letter}</span>`;
+  document.getElementById('sc-status-text').textContent = statusText;
 }
 
 function calcScenario2() {
@@ -505,12 +725,13 @@ function calcScenario2() {
   document.getElementById('sc2-final-val').textContent = f;
   document.getElementById('sc2-attendance-val').textContent = a;
   const total = calcTotal(m, f, a);
-  const [letter, cls] = scoreToGrade(total);
-  document.getElementById('sc2-total').textContent = total.toFixed(1);
-  document.getElementById('sc2-grade').innerHTML = `<span class="badge ${cls} fs-6">${letter}</span>`;
+  const [letter, colorClass] = gradeInfo(total);
+  const el = document.getElementById('sc2-total');
+  el.textContent = total.toFixed(1);
+  el.className = 'scenario-big mt-1 ' + colorClass;
+  document.getElementById('sc2-grade').innerHTML = `<span class="badge ${gradeBadgeClass(total)} fs-6 px-3">${letter}</span>`;
 }
 
-// Init scenario planners
 calcScenario();
 calcScenario2();
 
@@ -526,13 +747,21 @@ function openSubjectModal(subject, midterm, final_, attendance, total, classAvg)
   document.getElementById('sm-class-bar').style.width = classAvg + '%';
   const diff = total - classAvg;
   const sign = diff >= 0 ? '+' : '';
-  document.getElementById('sm-vs-class').textContent = sign + diff.toFixed(1) + ' vs class average';
-  document.getElementById('sm-vs-class').className = 'badge border fs-6 ' + (diff >= 0 ? 'bg-success' : 'bg-danger');
+  const badge = document.getElementById('sm-vs-badge');
+  badge.textContent = sign + diff.toFixed(1) + ' vs class average';
+  badge.className = 'badge px-3 py-2 fs-6 ' + (diff >= 0 ? 'bg-success' : 'bg-danger');
   let tip = '';
-  if (attendance < 75) tip = '⚠️ Attendance below 75% is hurting your score. Try to attend more classes.';
-  else if (diff < -10) tip = '📚 You are significantly below class average. Consider asking your teacher for help.';
-  else if (diff >= 10) tip = '🌟 You are performing well above class average in this subject. Great work!';
-  else tip = '✅ Your score is close to the class average. A bit more effort can push you above it.';
+  if (attendance < 75) {
+    tip = '⚠️  Attendance below 75% is reducing your total score. Each missed class directly lowers your grade.';
+  } else if (diff < -15) {
+    tip = '📚  You\'re significantly below class average. Consider scheduling extra study sessions or speaking to your teacher.';
+  } else if (diff < 0) {
+    tip = '📈  You\'re slightly below class average. A bit more effort in Final exams could push you above it.';
+  } else if (diff >= 15) {
+    tip = '🌟  Outstanding! You\'re well above class average in this subject. Keep up the excellent work!';
+  } else {
+    tip = '✅  You\'re performing above class average. Maintain your current effort and you\'ll do great.';
+  }
   document.getElementById('sm-tip').textContent = tip;
   new bootstrap.Modal(document.getElementById('subjectModal')).show();
 }
