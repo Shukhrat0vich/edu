@@ -267,32 +267,104 @@ class AnalyticsService:
 
     @staticmethod
     def get_student_summary(student):
-        """Summary stats for a specific student."""
+        """Summary stats for a specific student, including ranking, percentile, and recommendations."""
         grades = student.grades.select_related('subject').all()
         gpa = student.calculate_gpa()
         at_risk = student.is_at_risk()
 
+        # Per-subject class averages for comparison
+        subject_class_avgs = {}
+        for g in grades:
+            class_avg = Grade.objects.filter(subject=g.subject).aggregate(avg=Avg('total_score'))['avg'] or 0
+            subject_class_avgs[g.subject.id] = round(class_avg, 1)
+
         subject_scores = [
             {
                 'subject': g.subject.name,
+                'subject_id': g.subject.id,
                 'midterm': g.midterm,
                 'final': g.final,
                 'attendance': g.attendance,
                 'total_score': g.total_score,
                 'letter': g.get_letter_grade(),
+                'class_avg': subject_class_avgs.get(g.subject.id, 0),
+                'vs_class': round(g.total_score - subject_class_avgs.get(g.subject.id, 0), 1),
             }
             for g in grades
         ]
 
         scores = [g.total_score for g in grades]
+        avg_score = round(np.mean(scores), 2) if scores else 0
+
+        # Class rank and percentile
+        all_avg_scores = list(
+            Grade.objects.values('student_id')
+            .annotate(avg=Avg('total_score'))
+            .order_by('-avg')
+            .values_list('avg', flat=True)
+        )
+        # Re-query as ordered dicts to get rank
+        all_ranked = list(
+            Grade.objects.values('student_id')
+            .annotate(avg=Avg('total_score'))
+            .order_by('-avg')
+        )
+        rank = next((i + 1 for i, r in enumerate(all_ranked) if r['student_id'] == student.pk), None)
+        total_students = len(all_ranked)
+        percentile = round((1 - (rank - 1) / total_students) * 100, 1) if rank and total_students > 1 else 100.0
+
+        # Smart recommendations
+        recommendations = []
+        low_attendance = [s for s in subject_scores if s['attendance'] < 75]
+        failing_subjects = [s for s in subject_scores if s['total_score'] < 50]
+        weak_subjects = sorted(subject_scores, key=lambda x: x['total_score'])[:2] if subject_scores else []
+
+        if failing_subjects:
+            names = ', '.join(s['subject'] for s in failing_subjects[:2])
+            recommendations.append({
+                'type': 'danger',
+                'icon': 'bi-exclamation-triangle-fill',
+                'text': f'You are failing {names}. Contact your teacher immediately.',
+            })
+        if low_attendance:
+            names = ', '.join(s['subject'] for s in low_attendance[:2])
+            recommendations.append({
+                'type': 'warning',
+                'icon': 'bi-calendar-x-fill',
+                'text': f'Low attendance in {names}. Attendance below 75% lowers your total score.',
+            })
+        for s in weak_subjects:
+            if s['vs_class'] < -10:
+                recommendations.append({
+                    'type': 'info',
+                    'icon': 'bi-lightbulb-fill',
+                    'text': f"You're {abs(s['vs_class']):.0f} pts below class average in {s['subject']}. Extra study recommended.",
+                })
+        if gpa >= 3.5:
+            recommendations.append({
+                'type': 'success',
+                'icon': 'bi-trophy-fill',
+                'text': f'Excellent! You are in the top {100 - percentile:.0f}% of your class. Keep it up!',
+            })
+        elif not recommendations:
+            recommendations.append({
+                'type': 'success',
+                'icon': 'bi-check-circle-fill',
+                'text': 'Your performance is on track. Focus on improving your weakest subject.',
+            })
+
         return {
             'gpa': gpa,
-            'avg_score': round(np.mean(scores), 2) if scores else 0,
+            'avg_score': avg_score,
             'best_score': round(max(scores), 2) if scores else 0,
             'worst_score': round(min(scores), 2) if scores else 0,
             'at_risk': at_risk,
             'subject_count': len(subject_scores),
             'subjects': subject_scores,
+            'rank': rank,
+            'total_students': total_students,
+            'percentile': percentile,
+            'recommendations': recommendations,
         }
 
     # ──────────────────────────────────────────────────────────────────────────

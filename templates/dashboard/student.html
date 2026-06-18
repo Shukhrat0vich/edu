@@ -2,10 +2,30 @@
 {% block title %}My Dashboard{% endblock %}
 {% block breadcrumb %}<li class="breadcrumb-item active">My Dashboard</li>{% endblock %}
 
+{% block extra_css %}
+<style>
+  .rec-card { border-left: 4px solid; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 0.88rem; }
+  .rec-danger  { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+  .rec-warning { border-color: #f59e0b; background: #fffbeb; color: #92400e; }
+  .rec-info    { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
+  .rec-success { border-color: #10b981; background: #f0fdf4; color: #065f46; }
+  .vs-positive { color: #10b981; font-weight: 600; }
+  .vs-negative { color: #ef4444; font-weight: 600; }
+  .scenario-result { font-size: 1.4rem; font-weight: 700; }
+  .subject-modal-bar { height: 8px; border-radius: 4px; }
+  .rank-badge { font-size: 1.1rem; font-weight: 700; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <h1 class="page-title"><i class="bi bi-person-circle me-2 text-success"></i>My Performance</h1>
-  <p class="page-subtitle">{{ student.full_name }} — {{ student.faculty }} · {{ student.group }}</p>
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h1 class="page-title"><i class="bi bi-person-circle me-2 text-success"></i>My Performance</h1>
+    <p class="page-subtitle">{{ student.full_name }} — {{ student.faculty }} · {{ student.group }}</p>
+  </div>
+  <a href="{% url 'dashboard:predict' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-cpu me-1"></i>ML Predictor
+  </a>
 </div>
 
 <!-- ── KPI Cards ─────────────────────────────────────────────────────────── -->
@@ -29,6 +49,16 @@
     </div>
   </div>
   <div class="col-6 col-xl-3">
+    {% if summary.rank %}
+    <div class="kpi-card {% if summary.percentile >= 75 %}kpi-green{% elif summary.percentile >= 50 %}kpi-blue{% else %}kpi-purple{% endif %}"
+         role="button" data-bs-toggle="modal" data-bs-target="#rankModal" title="See class ranking">
+      <div class="kpi-icon"><i class="bi bi-trophy-fill"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-value">#{{ summary.rank }}</div>
+        <div class="kpi-label">Class Rank · Top {{ summary.percentile }}%</div>
+      </div>
+    </div>
+    {% else %}
     <div class="kpi-card kpi-green">
       <div class="kpi-icon"><i class="bi bi-star-fill"></i></div>
       <div class="kpi-body">
@@ -36,6 +66,7 @@
         <div class="kpi-label">Best Score</div>
       </div>
     </div>
+    {% endif %}
   </div>
   <div class="col-6 col-xl-3">
     <div class="kpi-card {% if summary.at_risk %}kpi-red{% else %}kpi-purple{% endif %}">
@@ -43,20 +74,37 @@
         <i class="bi bi-{% if summary.at_risk %}exclamation-triangle-fill{% else %}shield-check-fill{% endif %}"></i>
       </div>
       <div class="kpi-body">
-        <div class="kpi-value">{% if summary.at_risk %}⚠️ At Risk{% else %}✅ Safe{% endif %}</div>
+        <div class="kpi-value">{% if summary.at_risk %}At Risk{% else %}Safe{% endif %}</div>
         <div class="kpi-label">Risk Status</div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ── Risk Alert ─────────────────────────────────────────────────────────── -->
 {% if summary.at_risk %}
 <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
   <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
   <div>
-    <strong>Academic Risk Alert!</strong> Your performance indicates you may be at risk of failing.
-    Please contact your advisor or use the <a href="{% url 'dashboard:predict' %}" class="alert-link">ML Prediction tool</a>
-    to understand what improvements are needed.
+    <strong>Academic Risk Alert!</strong> Your performance indicates you may be at risk.
+    Use the <a href="{% url 'dashboard:predict' %}" class="alert-link">ML Prediction tool</a>
+    to see what improvements are needed.
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Recommendations ────────────────────────────────────────────────────── -->
+{% if summary.recommendations %}
+<div class="data-card mb-4">
+  <div class="data-card-header">
+    <h5><i class="bi bi-lightbulb-fill me-2 text-warning"></i>Personalized Recommendations</h5>
+  </div>
+  <div class="p-3">
+    {% for rec in summary.recommendations %}
+    <div class="rec-card rec-{{ rec.type }}">
+      <i class="bi {{ rec.icon }} me-2"></i>{{ rec.text }}
+    </div>
+    {% endfor %}
   </div>
 </div>
 {% endif %}
@@ -67,6 +115,7 @@
     <div class="chart-card">
       <div class="chart-card-header">
         <h5><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Performance by Subject</h5>
+        <small class="text-muted">Purple = your score · Gray = class average</small>
       </div>
       <canvas id="subjectChart" height="130"></canvas>
     </div>
@@ -104,34 +153,38 @@
         <strong>{{ prediction.predicted_total_score }}</strong>
       </div>
       <div class="pred-detail">
-        <span>Based on Attendance</span>
+        <span>Attendance Used</span>
         <strong>{{ prediction.input.attendance }}%</strong>
       </div>
       <div class="pred-detail">
-        <span>Based on Midterm</span>
+        <span>Midterm Used</span>
         <strong>{{ prediction.input.midterm }}</strong>
       </div>
     </div>
   </div>
   <div class="text-end mt-2">
+    <button class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#scenarioModal">
+      <i class="bi bi-sliders me-1"></i>Scenario Planner
+    </button>
     <a href="{% url 'dashboard:predict' %}" class="btn btn-sm btn-outline-primary">
-      <i class="bi bi-sliders me-1"></i>Try Custom Prediction
+      <i class="bi bi-cpu me-1"></i>Full ML Predictor
     </a>
   </div>
 </div>
 {% endif %}
 
 <!-- ── Grades Table ────────────────────────────────────────────────────────── -->
-<div class="data-card">
+<div class="data-card mb-4">
   <div class="data-card-header">
     <h5><i class="bi bi-table me-2 text-primary"></i>My Grades</h5>
-    <span class="badge bg-secondary">{{ summary.subject_count }} subjects</span>
+    <span class="badge bg-secondary">{{ summary.subject_count }} subject{{ summary.subject_count|pluralize }}</span>
   </div>
   <div class="table-responsive">
     <table class="table table-hover align-middle">
       <thead>
         <tr>
-          <th>Subject</th><th>Midterm</th><th>Final</th><th>Attendance</th><th>Total Score</th><th>Grade</th>
+          <th>Subject</th><th>Midterm</th><th>Final</th><th>Attendance</th>
+          <th>Total Score</th><th>vs Class</th><th>Grade</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -142,16 +195,18 @@
           <td>{{ s.final|floatformat:1 }}</td>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="progress" style="width:70px;height:6px">
+              <div class="progress" style="width:60px;height:6px">
                 <div class="progress-bar {% if s.attendance >= 75 %}bg-success{% else %}bg-warning{% endif %}"
                      style="width:{{ s.attendance }}%"></div>
               </div>
-              <small>{{ s.attendance|floatformat:0 }}%</small>
+              <small>{{ s.attendance|floatformat:0 }}%
+                {% if s.attendance < 75 %}<i class="bi bi-exclamation-circle text-warning ms-1" title="Low attendance"></i>{% endif %}
+              </small>
             </div>
           </td>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <div class="progress flex-grow-1" style="height:8px">
+              <div class="progress flex-grow-1" style="height:7px">
                 <div class="progress-bar {% if s.total_score >= 70 %}bg-success{% elif s.total_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
                      style="width:{{ s.total_score }}%"></div>
               </div>
@@ -159,25 +214,187 @@
             </div>
           </td>
           <td>
+            {% if s.vs_class >= 0 %}
+            <span class="vs-positive">+{{ s.vs_class }}</span>
+            {% else %}
+            <span class="vs-negative">{{ s.vs_class }}</span>
+            {% endif %}
+            <small class="text-muted ms-1">avg {{ s.class_avg }}</small>
+          </td>
+          <td>
             <span class="badge fs-6 {% if s.letter == 'A' %}bg-success{% elif s.letter == 'B' %}bg-primary{% elif s.letter == 'C' %}bg-info text-dark{% elif s.letter == 'D' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
               {{ s.letter }}
             </span>
           </td>
+          <td>
+            <button class="btn btn-xs btn-outline-secondary py-0 px-1"
+                    onclick="openSubjectModal('{{ s.subject|escapejs }}', {{ s.midterm }}, {{ s.final }}, {{ s.attendance }}, {{ s.total_score }}, {{ s.class_avg }})"
+                    title="Subject details">
+              <i class="bi bi-zoom-in"></i>
+            </button>
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
+        <tr><td colspan="8" class="text-center text-muted py-4">No grades recorded yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+<!-- ── Scenario Planner ───────────────────────────────────────────────────── -->
+<div class="data-card mb-4">
+  <div class="data-card-header">
+    <h5><i class="bi bi-calculator me-2 text-info"></i>Scenario Planner</h5>
+    <small class="text-muted">What if I scored differently?</small>
+  </div>
+  <div class="p-3">
+    <div class="row g-3 align-items-end">
+      <div class="col-sm-3">
+        <label class="form-label fw-semibold">Midterm Score</label>
+        <input type="range" class="form-range" id="sc-midterm" min="0" max="100" value="60" oninput="calcScenario()">
+        <div class="text-center"><span id="sc-midterm-val">60</span></div>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label fw-semibold">Final Score</label>
+        <input type="range" class="form-range" id="sc-final" min="0" max="100" value="60" oninput="calcScenario()">
+        <div class="text-center"><span id="sc-final-val">60</span></div>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label fw-semibold">Attendance %</label>
+        <input type="range" class="form-range" id="sc-attendance" min="0" max="100" value="80" oninput="calcScenario()">
+        <div class="text-center"><span id="sc-attendance-val">80</span></div>
+      </div>
+      <div class="col-sm-3 text-center">
+        <div class="text-muted small mb-1">Total Score</div>
+        <div class="scenario-result" id="sc-total">62.0</div>
+        <div id="sc-grade-badge" class="mt-1"></div>
+      </div>
+    </div>
+    <div class="text-muted small mt-2">Formula: Midterm×30% + Final×50% + Attendance×20%</div>
+  </div>
+</div>
+
+<!-- ── Subject Deep-Dive Modal ────────────────────────────────────────────── -->
+<div class="modal fade" id="subjectModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-zoom-in me-2 text-primary"></i><span id="sm-subject"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3 text-center mb-3">
+          <div class="col-4">
+            <div class="border rounded p-2">
+              <div class="fs-5 fw-bold text-primary" id="sm-midterm"></div>
+              <div class="small text-muted">Midterm</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded p-2">
+              <div class="fs-5 fw-bold text-success" id="sm-final"></div>
+              <div class="small text-muted">Final</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded p-2">
+              <div class="fs-5 fw-bold text-warning" id="sm-attendance"></div>
+              <div class="small text-muted">Attendance</div>
+            </div>
+          </div>
+        </div>
+        <hr>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="small">Your Score</span>
+            <strong id="sm-total-text"></strong>
+          </div>
+          <div class="progress" style="height:12px">
+            <div class="progress-bar bg-primary" id="sm-total-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="small">Class Average</span>
+            <strong id="sm-class-text"></strong>
+          </div>
+          <div class="progress" style="height:12px">
+            <div class="progress-bar bg-secondary" id="sm-class-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="text-center mt-3">
+          <span class="badge bg-light text-dark border fs-6" id="sm-vs-class"></span>
+        </div>
+        <div class="mt-3 p-2 bg-light rounded small" id="sm-tip"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Rank Modal ─────────────────────────────────────────────────────────── -->
+<div class="modal fade" id="rankModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-trophy-fill me-2 text-warning"></i>Class Ranking</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="display-4 fw-bold text-primary">#{{ summary.rank }}</div>
+        <div class="text-muted mb-3">out of {{ summary.total_students }} students</div>
+        <div class="progress mb-2" style="height:14px">
+          <div class="progress-bar bg-success" style="width:{{ summary.percentile }}%"></div>
+        </div>
+        <div class="fw-semibold">Top {{ summary.percentile }}% of your class</div>
+        <div class="small text-muted mt-2">Based on your overall average score across all subjects</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scenario Modal (from ML card button) ───────────────────────────────── -->
+<div class="modal fade" id="scenarioModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-sliders me-2 text-info"></i>Scenario Planner</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Adjust the sliders to see how different scores affect your total.</p>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Midterm: <span id="sc2-midterm-val">60</span></label>
+          <input type="range" class="form-range" id="sc2-midterm" min="0" max="100" value="60" oninput="calcScenario2()">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Final: <span id="sc2-final-val">60</span></label>
+          <input type="range" class="form-range" id="sc2-final" min="0" max="100" value="60" oninput="calcScenario2()">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Attendance: <span id="sc2-attendance-val">80</span>%</label>
+          <input type="range" class="form-range" id="sc2-attendance" min="0" max="100" value="80" oninput="calcScenario2()">
+        </div>
+        <div class="text-center p-3 bg-light rounded">
+          <div class="text-muted small">Predicted Total Score</div>
+          <div class="display-5 fw-bold" id="sc2-total">62.0</div>
+          <div id="sc2-grade" class="mt-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const subjectData = {{ subjects_json|safe }};
 
-// Performance Bar Chart
+// ── Performance Bar Chart (with class avg line) ───────────────────────────
 new Chart(document.getElementById('subjectChart'), {
   type: 'bar',
   data: {
@@ -200,6 +417,16 @@ new Chart(document.getElementById('subjectChart'), {
         data: subjectData.map(s => s.total_score),
         backgroundColor: 'rgba(139,92,246,0.7)',
         borderRadius: 4,
+      },
+      {
+        label: 'Class Avg',
+        data: subjectData.map(s => s.class_avg),
+        type: 'line',
+        borderColor: 'rgba(107,114,128,0.8)',
+        backgroundColor: 'transparent',
+        borderDash: [5, 3],
+        pointRadius: 4,
+        tension: 0.3,
       }
     ]
   },
@@ -212,26 +439,102 @@ new Chart(document.getElementById('subjectChart'), {
   }
 });
 
-// Radar Chart
+// ── Radar Chart ───────────────────────────────────────────────────────────
 if (subjectData.length > 0) {
   new Chart(document.getElementById('radarChart'), {
     type: 'radar',
     data: {
-      labels: subjectData.slice(0,6).map(s => s.subject.substring(0,10)),
-      datasets: [{
-        label: 'Total Score',
-        data: subjectData.slice(0,6).map(s => s.total_score),
-        fill: true,
-        backgroundColor: 'rgba(99,102,241,0.2)',
-        borderColor: 'rgba(99,102,241,0.8)',
-        pointBackgroundColor: 'rgba(99,102,241,0.8)',
-      }]
+      labels: subjectData.slice(0,6).map(s => s.subject.substring(0,12)),
+      datasets: [
+        {
+          label: 'My Score',
+          data: subjectData.slice(0,6).map(s => s.total_score),
+          fill: true,
+          backgroundColor: 'rgba(99,102,241,0.2)',
+          borderColor: 'rgba(99,102,241,0.8)',
+          pointBackgroundColor: 'rgba(99,102,241,0.8)',
+        },
+        {
+          label: 'Class Avg',
+          data: subjectData.slice(0,6).map(s => s.class_avg),
+          fill: false,
+          backgroundColor: 'transparent',
+          borderColor: 'rgba(156,163,175,0.7)',
+          borderDash: [4, 2],
+          pointBackgroundColor: 'rgba(156,163,175,0.7)',
+        }
+      ]
     },
     options: {
       responsive: true,
       scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } },
     }
   });
+}
+
+// ── Scenario Planner ──────────────────────────────────────────────────────
+function scoreToGrade(s) {
+  if (s >= 90) return ['A', 'bg-success'];
+  if (s >= 80) return ['B', 'bg-primary'];
+  if (s >= 70) return ['C', 'bg-info text-dark'];
+  if (s >= 60) return ['D', 'bg-warning text-dark'];
+  return ['F', 'bg-danger'];
+}
+function calcTotal(m, f, a) {
+  return Math.round((m * 0.3 + f * 0.5 + a * 0.2) * 10) / 10;
+}
+
+function calcScenario() {
+  const m = +document.getElementById('sc-midterm').value;
+  const f = +document.getElementById('sc-final').value;
+  const a = +document.getElementById('sc-attendance').value;
+  document.getElementById('sc-midterm-val').textContent = m;
+  document.getElementById('sc-final-val').textContent = f;
+  document.getElementById('sc-attendance-val').textContent = a;
+  const total = calcTotal(m, f, a);
+  const [letter, cls] = scoreToGrade(total);
+  document.getElementById('sc-total').textContent = total.toFixed(1);
+  document.getElementById('sc-grade-badge').innerHTML = `<span class="badge ${cls}">${letter}</span>`;
+}
+
+function calcScenario2() {
+  const m = +document.getElementById('sc2-midterm').value;
+  const f = +document.getElementById('sc2-final').value;
+  const a = +document.getElementById('sc2-attendance').value;
+  document.getElementById('sc2-midterm-val').textContent = m;
+  document.getElementById('sc2-final-val').textContent = f;
+  document.getElementById('sc2-attendance-val').textContent = a;
+  const total = calcTotal(m, f, a);
+  const [letter, cls] = scoreToGrade(total);
+  document.getElementById('sc2-total').textContent = total.toFixed(1);
+  document.getElementById('sc2-grade').innerHTML = `<span class="badge ${cls} fs-6">${letter}</span>`;
+}
+
+// Init scenario planners
+calcScenario();
+calcScenario2();
+
+// ── Subject Deep-Dive Modal ───────────────────────────────────────────────
+function openSubjectModal(subject, midterm, final_, attendance, total, classAvg) {
+  document.getElementById('sm-subject').textContent = subject;
+  document.getElementById('sm-midterm').textContent = midterm.toFixed(1);
+  document.getElementById('sm-final').textContent = final_.toFixed(1);
+  document.getElementById('sm-attendance').textContent = attendance.toFixed(0) + '%';
+  document.getElementById('sm-total-text').textContent = total.toFixed(1);
+  document.getElementById('sm-class-text').textContent = classAvg.toFixed(1);
+  document.getElementById('sm-total-bar').style.width = total + '%';
+  document.getElementById('sm-class-bar').style.width = classAvg + '%';
+  const diff = total - classAvg;
+  const sign = diff >= 0 ? '+' : '';
+  document.getElementById('sm-vs-class').textContent = sign + diff.toFixed(1) + ' vs class average';
+  document.getElementById('sm-vs-class').className = 'badge border fs-6 ' + (diff >= 0 ? 'bg-success' : 'bg-danger');
+  let tip = '';
+  if (attendance < 75) tip = '⚠️ Attendance below 75% is hurting your score. Try to attend more classes.';
+  else if (diff < -10) tip = '📚 You are significantly below class average. Consider asking your teacher for help.';
+  else if (diff >= 10) tip = '🌟 You are performing well above class average in this subject. Great work!';
+  else tip = '✅ Your score is close to the class average. A bit more effort can push you above it.';
+  document.getElementById('sm-tip').textContent = tip;
+  new bootstrap.Modal(document.getElementById('subjectModal')).show();
 }
 </script>
 {% endblock %}
