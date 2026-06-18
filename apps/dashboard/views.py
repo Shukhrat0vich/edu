@@ -412,3 +412,43 @@ class GradeDeleteView(View):
         grade.delete()
         messages.success(request, f'Grade deleted for {name} in {subject_name}.')
         return _grade_redirect(request)
+
+
+# ─── ML Model Management (Admin only) ────────────────────────────────────────
+
+@method_decorator(login_required, name='dispatch')
+class TrainMLModelView(View):
+    """Train (or retrain) the ML model. Admin only."""
+
+    def post(self, request):
+        if request.user.role != UserRole.ADMIN:
+            return JsonResponse({'error': 'Forbidden'}, status=403)
+
+        retrain = request.POST.get('retrain') == '1'
+        try:
+            from apps.ml_service.ml_model import grade_predictor
+            metrics = grade_predictor.train(retrain=retrain)
+            return JsonResponse({
+                'success': True,
+                'metrics': metrics,
+                'message': 'Model trained successfully!',
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(login_required, name='dispatch')
+class MLModelStatusView(View):
+    """Return current ML model status as JSON."""
+
+    def get(self, request):
+        from apps.ml_service.ml_model import grade_predictor
+        info = grade_predictor.get_model_info()
+        from apps.academics.models import Grade
+        grade_count = Grade.objects.count()
+        return JsonResponse({
+            'is_trained': info.get('is_trained', False),
+            'metrics': info.get('metrics'),
+            'algorithm': info.get('algorithm', 'LinearRegression'),
+            'grade_count': grade_count,
+        })
