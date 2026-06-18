@@ -298,7 +298,7 @@ class GradeCreateView(View):
 
     def post(self, request):
         role = request.user.role
-        if role not in (UserRole.ADMIN, UserRole.TEACHER):
+        if role != UserRole.ADMIN:
             return JsonResponse({'error': 'Forbidden'}, status=403)
 
         subject_id = request.POST.get('subject_id')
@@ -307,15 +307,7 @@ class GradeCreateView(View):
         final_score = request.POST.get('final')
         attendance = request.POST.get('attendance')
 
-        if role == UserRole.TEACHER:
-            try:
-                teacher = request.user.teacher_profile
-            except Teacher.DoesNotExist:
-                return JsonResponse({'error': 'No teacher profile'}, status=403)
-            subject = get_object_or_404(Subject, pk=subject_id, teacher=teacher)
-        else:
-            subject = get_object_or_404(Subject, pk=subject_id)
-
+        subject = get_object_or_404(Subject, pk=subject_id)
         student = get_object_or_404(Student, pk=student_id)
 
         if Grade.objects.filter(student=student, subject=subject).exists():

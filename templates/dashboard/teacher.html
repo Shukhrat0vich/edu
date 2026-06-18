@@ -121,13 +121,6 @@
         Pass: {{ data.pass_rate }}%
       </span>
       <span class="badge bg-secondary">{{ data.subject.credit }} credits</span>
-      {% if data.ungraded_students %}
-      <button class="btn btn-sm btn-success"
-              data-bs-toggle="modal" data-bs-target="#addGradeModal"
-              onclick="setAddSubject({{ data.subject.pk }}, '{{ data.subject.name|escapejs }}', {{ data.ungraded_students|length }})">
-        <i class="bi bi-plus-circle me-1"></i>Add Grade
-      </button>
-      {% endif %}
     </div>
   </div>
   <div class="table-responsive">
@@ -185,57 +178,6 @@
   </div>
 </div>
 {% endfor %}
-</div>
-
-<!-- ── Add Grade Modal ────────────────────────────────────────────────────── -->
-<div class="modal fade" id="addGradeModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-success"></i>Add Grade</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="post" action="{% url 'dashboard:grade_add' %}">
-        {% csrf_token %}
-        <input type="hidden" name="subject_id" id="add-subject-id">
-        <div class="modal-body">
-          <p class="text-muted mb-3">Subject: <strong id="add-subject-name"></strong></p>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Student</label>
-            <select name="student_id" id="add-student-select" class="form-select" required>
-              <option value="">Select student...</option>
-              {% for data in subject_data %}
-                {% for student in data.ungraded_students %}
-                <option value="{{ student.pk }}" data-subject="{{ data.subject.pk }}">{{ student.full_name }} ({{ student.group }})</option>
-                {% endfor %}
-              {% endfor %}
-            </select>
-          </div>
-          <div class="row g-3">
-            <div class="col-4">
-              <label class="form-label fw-semibold">Midterm <small class="text-muted">(0–100)</small></label>
-              <input type="number" name="midterm" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
-            </div>
-            <div class="col-4">
-              <label class="form-label fw-semibold">Final <small class="text-muted">(0–100)</small></label>
-              <input type="number" name="final" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
-            </div>
-            <div class="col-4">
-              <label class="form-label fw-semibold">Attendance <small class="text-muted">(%)</small></label>
-              <input type="number" name="attendance" class="form-control" min="0" max="100" step="0.1" required placeholder="0–100">
-            </div>
-          </div>
-          <div class="mt-3 p-2 bg-light rounded small text-muted">
-            Total = Midterm×30% + Final×50% + Attendance×20%
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-success"><i class="bi bi-check-lg me-1"></i>Save Grade</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
 
 <!-- ── Edit Grade Modal ───────────────────────────────────────────────────── -->
@@ -329,30 +271,6 @@ new Chart(document.getElementById('subjectChart'), {
   }
 });
 
-// All ungraded students keyed by subject id (populated from Django data)
-const ungradedBySubject = {};
-{% for data in subject_data %}
-ungradedBySubject[{{ data.subject.pk }}] = [
-  {% for student in data.ungraded_students %}
-  { id: {{ student.pk }}, name: "{{ student.full_name|escapejs }} ({{ student.group|escapejs }})" },
-  {% endfor %}
-];
-{% endfor %}
-
-function setAddSubject(subjectId, subjectName, count) {
-  document.getElementById('add-subject-id').value = subjectId;
-  document.getElementById('add-subject-name').textContent = subjectName;
-  const sel = document.getElementById('add-student-select');
-  sel.innerHTML = '<option value="">Select student...</option>';
-  const students = ungradedBySubject[subjectId] || [];
-  students.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.name;
-    sel.appendChild(opt);
-  });
-}
-
 function openEditModal(gradeId, studentName, midterm, finalScore, attendance) {
   document.getElementById('edit-student-name').textContent = studentName;
   document.getElementById('edit-midterm').value = midterm;
@@ -369,7 +287,6 @@ function openDeleteModal(gradeId, studentName, subjectName) {
   new bootstrap.Modal(document.getElementById('deleteGradeModal')).show();
 }
 
-// Smooth scroll for anchor links
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const target = document.querySelector(a.getAttribute('href'));
