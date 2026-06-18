@@ -1,211 +1,724 @@
 {% extends "base.html" %}
-{% block title %}ML Prediction{% endblock %}
-{% block breadcrumb %}<li class="breadcrumb-item active">ML Prediction</li>{% endblock %}
+{% block title %}ML Grade Predictor{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Layout ─────────────────────────────────────────────────── */
+.predictor-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 992px) { .predictor-grid { grid-template-columns: 1fr; } }
+
+/* ── Panel Card ─────────────────────────────────────────────── */
+.panel-card {
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.panel-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-header h5 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.panel-body { padding: 22px; }
+[data-bs-theme="dark"] .panel-card { border-color: var(--border); }
+[data-bs-theme="dark"] .panel-header { border-bottom-color: var(--border); }
+
+/* ── Sliders ─────────────────────────────────────────────────── */
+.slider-group { margin-bottom: 24px; }
+.slider-label {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.slider-label-text { font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.slider-value-badge {
+  font-size: 13px; font-weight: 800; padding: 3px 12px;
+  border-radius: 20px; min-width: 52px; text-align: center;
+  transition: background .2s, color .2s;
+}
+.badge-att  { background: rgba(16,185,129,.15); color: #059669; }
+.badge-mid  { background: rgba(59,130,246,.15);  color: #2563eb; }
+.badge-gpa  { background: rgba(245,158,11,.15);  color: #d97706; }
+[data-bs-theme="dark"] .badge-att  { background: rgba(16,185,129,.2);  color: #34d399; }
+[data-bs-theme="dark"] .badge-mid  { background: rgba(59,130,246,.2);  color: #60a5fa; }
+[data-bs-theme="dark"] .badge-gpa  { background: rgba(245,158,11,.2);  color: #fbbf24; }
+
+.form-range { accent-color: var(--indigo); }
+.slider-range-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Impact Bars ─────────────────────────────────────────────── */
+.impact-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12px; }
+.impact-name { width: 70px; color: var(--text-muted); font-weight: 600; }
+.impact-bar-track { flex: 1; height: 6px; background: var(--border-soft); border-radius: 99px; overflow: hidden; }
+.impact-bar-fill  { height: 100%; border-radius: 99px; transition: width .5s ease; }
+.impact-pct { width: 32px; text-align: right; font-weight: 700; color: var(--text-secondary); }
+
+/* ── Score Gauge ─────────────────────────────────────────────── */
+.gauge-wrap {
+  position: relative;
+  width: 220px; height: 120px;
+  margin: 0 auto 8px;
+}
+.gauge-wrap canvas { display: block; }
+.gauge-text {
+  position: absolute;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  text-align: center;
+}
+.gauge-score { font-size: 42px; font-weight: 900; line-height: 1; letter-spacing: -1px; transition: color .4s; }
+.gauge-label { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: .4px; text-transform: uppercase; }
+
+/* ── Result Section ──────────────────────────────────────────── */
+.result-hero {
+  text-align: center; padding: 28px 22px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+[data-bs-theme="dark"] .result-hero { border-bottom-color: var(--border); }
+
+.letter-grade {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 18px;
+  font-size: 28px; font-weight: 900;
+  margin: 0 auto 10px;
+  transition: all .4s ease;
+}
+.grade-A { background: rgba(16,185,129,.15); color: #059669; border: 2px solid rgba(16,185,129,.3); }
+.grade-B { background: rgba(59,130,246,.15);  color: #2563eb; border: 2px solid rgba(59,130,246,.3); }
+.grade-C { background: rgba(245,158,11,.15);  color: #d97706; border: 2px solid rgba(245,158,11,.3); }
+.grade-D { background: rgba(239,68,68,.12);   color: #dc2626; border: 2px solid rgba(239,68,68,.25); }
+.grade-F { background: rgba(239,68,68,.2);    color: #b91c1c; border: 2px solid rgba(239,68,68,.4); }
+[data-bs-theme="dark"] .grade-A { background: rgba(16,185,129,.2); color: #34d399; }
+[data-bs-theme="dark"] .grade-B { background: rgba(59,130,246,.2); color: #60a5fa; }
+[data-bs-theme="dark"] .grade-C { background: rgba(245,158,11,.2); color: #fbbf24; }
+[data-bs-theme="dark"] .grade-D { background: rgba(239,68,68,.18); color: #f87171; }
+[data-bs-theme="dark"] .grade-F { background: rgba(239,68,68,.25); color: #fca5a5; }
+
+.risk-banner {
+  border-radius: 10px; padding: 10px 16px;
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  transition: all .3s;
+}
+.risk-safe       { background: rgba(16,185,129,.1);  color: #065f46; border: 1px solid rgba(16,185,129,.2); }
+.risk-borderline { background: rgba(245,158,11,.1);  color: #78350f; border: 1px solid rgba(245,158,11,.2); }
+.risk-at_risk    { background: rgba(239,68,68,.1);   color: #7f1d1d; border: 1px solid rgba(239,68,68,.2); }
+[data-bs-theme="dark"] .risk-safe       { color: #6ee7b7; }
+[data-bs-theme="dark"] .risk-borderline { color: #fcd34d; }
+[data-bs-theme="dark"] .risk-at_risk    { color: #fca5a5; }
+
+/* ── Score Breakdown ─────────────────────────────────────────── */
+.breakdown-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 22px; border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+.breakdown-row:last-child { border-bottom: none; }
+[data-bs-theme="dark"] .breakdown-row { border-bottom-color: var(--border); }
+.breakdown-label { color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 7px; }
+.breakdown-val { font-weight: 800; font-size: 14px; color: var(--text-primary); }
+.breakdown-contribution { font-size: 11px; color: var(--text-muted); }
+.breakdown-total { background: var(--surface-2); font-weight: 800; }
+.breakdown-total .breakdown-label { color: var(--text-primary); font-weight: 700; }
+.breakdown-total .breakdown-val { font-size: 18px; }
+
+/* ── Tips ────────────────────────────────────────────────────── */
+.tip-item {
+  display: flex; gap: 10px; padding: 11px 14px;
+  border-radius: 8px; font-size: 12.5px; line-height: 1.4;
+  margin-bottom: 6px; border-left: 3px solid;
+}
+.tip-success { background: rgba(16,185,129,.07);  border-color: #10b981; color: var(--text-secondary); }
+.tip-warning { background: rgba(245,158,11,.07);  border-color: #f59e0b; color: var(--text-secondary); }
+.tip-danger  { background: rgba(239,68,68,.07);   border-color: #ef4444; color: var(--text-secondary); }
+.tip-item i  { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Model Info pill ─────────────────────────────────────────── */
+.model-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 3px 9px;
+  border-radius: 20px;
+}
+.model-badge-trained   { background: rgba(16,185,129,.1); color: #059669; border: 1px solid rgba(16,185,129,.2); }
+.model-badge-untrained { background: rgba(239,68,68,.1);  color: #dc2626; border: 1px solid rgba(239,68,68,.2); }
+
+/* ── What-if table ───────────────────────────────────────────── */
+.whatif-table td, .whatif-table th { font-size: 12.5px; padding: 8px 12px; vertical-align: middle; }
+.whatif-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* ── Not trained state ───────────────────────────────────────── */
+.untrained-state { text-align: center; padding: 48px 24px; }
+.untrained-state .big-icon { font-size: 56px; margin-bottom: 12px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1 class="page-title"><i class="bi bi-cpu me-2 text-primary"></i>Grade Prediction</h1>
-  <p class="page-subtitle">AI-powered final exam score predictor using Linear Regression</p>
+<div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
+  <div>
+    <h1 class="page-title"><i class="bi bi-cpu me-2" style="color:var(--indigo)"></i>Grade Predictor</h1>
+    <p class="page-subtitle">Predict your final exam score using Linear Regression AI</p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    {% if model_info.is_trained %}
+      <span class="model-badge model-badge-trained"><i class="bi bi-check-circle-fill"></i> Model Ready</span>
+      {% if model_info.metrics %}
+      <span class="model-badge" style="background:rgba(99,102,241,.1);color:var(--indigo);border:1px solid rgba(99,102,241,.2);">
+        R² {{ model_info.metrics.r2 }}
+      </span>
+      {% endif %}
+    {% else %}
+      <span class="model-badge model-badge-untrained"><i class="bi bi-exclamation-circle-fill"></i> Not Trained</span>
+    {% endif %}
+  </div>
 </div>
 
-<div class="row g-4">
-  <!-- Form -->
-  <div class="col-12 col-lg-5">
-    <div class="data-card">
-      <div class="data-card-header">
-        <h5><i class="bi bi-sliders me-2 text-primary"></i>Input Parameters</h5>
+{% if not model_info.is_trained %}
+<!-- ── Not trained ── -->
+<div class="panel-card">
+  <div class="untrained-state">
+    <div class="big-icon">🤖</div>
+    <h3 style="font-weight:800;">ML Model Not Trained Yet</h3>
+    <p class="text-muted" style="max-width:420px;margin:0 auto 20px;">
+      The Linear Regression model needs to be trained on your student data before predictions can be made.
+    </p>
+    <div class="d-inline-block text-start bg-dark text-white rounded-3 px-4 py-3" style="font-family:monospace;font-size:13px;">
+      <span style="color:#6ee7b7;">$</span> python manage.py train_ml_model
+    </div>
+    <div class="row g-3 mt-4" style="max-width:500px;margin:0 auto;">
+      <div class="col-4 text-center">
+        <div style="font-size:24px;">📊</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Trains on all grade data</div>
       </div>
-      <form method="post" id="predForm">
-        {% csrf_token %}
-        <div class="mb-4">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-calendar-check me-1 text-success"></i>Attendance (%)
-          </label>
-          <input type="range" class="form-range" name="attendance" id="attendanceRange"
-                 min="0" max="100" step="1" value="{{ prefill.attendance|default:75 }}"
-                 oninput="document.getElementById('attendanceVal').textContent=this.value">
-          <div class="d-flex justify-content-between">
-            <small class="text-muted">0%</small>
-            <span class="badge bg-success fs-6" id="attendanceVal">{{ prefill.attendance|default:75 }}</span>
-            <small class="text-muted">100%</small>
+      <div class="col-4 text-center">
+        <div style="font-size:24px;">⚡</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Takes under 5 seconds</div>
+      </div>
+      <div class="col-4 text-center">
+        <div style="font-size:24px;">🎯</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Instant live predictions</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- ── Main Predictor ── -->
+<div class="predictor-grid">
+
+  <!-- Left: Input Panel -->
+  <div>
+    <div class="panel-card">
+      <div class="panel-header">
+        <h5><i class="bi bi-sliders me-2" style="color:var(--indigo)"></i>Input Parameters</h5>
+        <button class="btn btn-sm" style="font-size:11px;color:var(--text-muted);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:3px 10px;" onclick="resetSliders()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+        </button>
+      </div>
+      <div class="panel-body">
+
+        <!-- Attendance Slider -->
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-label-text"><i class="bi bi-calendar-check" style="color:#10b981;"></i> Attendance</span>
+            <span class="slider-value-badge badge-att" id="attVal">75</span>
+          </div>
+          <input type="range" class="form-range" id="attRange" min="0" max="100" step="1" value="75">
+          <div class="slider-range-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+        </div>
+
+        <!-- Midterm Slider -->
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-label-text"><i class="bi bi-pencil-square" style="color:#3b82f6;"></i> Midterm Score</span>
+            <span class="slider-value-badge badge-mid" id="midVal">60</span>
+          </div>
+          <input type="range" class="form-range" id="midRange" min="0" max="100" step="0.5" value="60">
+          <div class="slider-range-labels"><span>0</span><span>50</span><span>100</span></div>
+        </div>
+
+        <!-- GPA Slider -->
+        <div class="slider-group">
+          <div class="slider-label">
+            <span class="slider-label-text"><i class="bi bi-award" style="color:#f59e0b;"></i> Previous GPA</span>
+            <span class="slider-value-badge badge-gpa" id="gpaVal">2.5</span>
+          </div>
+          <input type="range" class="form-range" id="gpaRange" min="0" max="4" step="0.1" value="2.5">
+          <div class="slider-range-labels"><span>0.0</span><span>2.0</span><span>4.0</span></div>
+        </div>
+
+        <!-- Score Formula Preview -->
+        <div style="background:var(--surface-2);border-radius:10px;padding:14px;margin-bottom:20px;border:1px solid var(--border-soft);">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-muted);margin-bottom:10px;">Score Formula</div>
+          <div class="impact-row">
+            <span class="impact-name">Midterm</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" id="barMid" style="width:30%;background:#3b82f6;"></div></div>
+            <span class="impact-pct">30%</span>
+          </div>
+          <div class="impact-row">
+            <span class="impact-name">Final</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" id="barFinal" style="width:50%;background:var(--indigo);"></div></div>
+            <span class="impact-pct">50%</span>
+          </div>
+          <div class="impact-row">
+            <span class="impact-name">Attendance</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" id="barAtt" style="width:20%;background:#10b981;"></div></div>
+            <span class="impact-pct">20%</span>
           </div>
         </div>
 
-        <div class="mb-4">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-pencil-square me-1 text-info"></i>Midterm Score (0–100)
-          </label>
-          <input type="range" class="form-range" name="midterm" id="midtermRange"
-                 min="0" max="100" step="0.5" value="{{ prefill.midterm|default:60 }}"
-                 oninput="document.getElementById('midtermVal').textContent=parseFloat(this.value).toFixed(1)">
-          <div class="d-flex justify-content-between">
-            <small class="text-muted">0</small>
-            <span class="badge bg-info text-dark fs-6" id="midtermVal">{{ prefill.midterm|default:60 }}</span>
-            <small class="text-muted">100</small>
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-award me-1 text-warning"></i>Previous GPA (0.0–4.0)
-          </label>
-          <input type="range" class="form-range" name="previous_gpa" id="gpaRange"
-                 min="0" max="4" step="0.1" value="{{ prefill.previous_gpa|default:2.5 }}"
-                 oninput="document.getElementById('gpaVal').textContent=parseFloat(this.value).toFixed(1)">
-          <div class="d-flex justify-content-between">
-            <small class="text-muted">0.0</small>
-            <span class="badge bg-warning text-dark fs-6" id="gpaVal">{{ prefill.previous_gpa|default:2.5 }}</span>
-            <small class="text-muted">4.0</small>
-          </div>
-        </div>
-
-        {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
-        {% endif %}
-
-        <button type="submit" class="btn btn-primary w-100 btn-lg" {% if not model_info.is_trained %}disabled{% endif %}>
-          <i class="bi bi-cpu me-2"></i>Predict Performance
+        <!-- Predict Button -->
+        <button class="btn btn-primary w-100" style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;" onclick="runPrediction()">
+          <i class="bi bi-cpu me-2"></i>Predict My Score
         </button>
 
-        {% if not model_info.is_trained %}
-        <div class="alert alert-warning mt-3">
-          <i class="bi bi-exclamation-triangle me-1"></i>
-          ML model not trained yet. Run:<br>
-          <code>python manage.py train_ml_model</code>
-        </div>
-        {% endif %}
-      </form>
+      </div>
     </div>
 
-    <!-- Model Info -->
-    {% if model_info.is_trained %}
-    <div class="data-card mt-4">
-      <div class="data-card-header">
-        <h6><i class="bi bi-info-circle me-2 text-secondary"></i>Model Info</h6>
+    <!-- Model Info card -->
+    {% if model_info.metrics %}
+    <div class="panel-card mt-3">
+      <div class="panel-header">
+        <h5><i class="bi bi-bar-chart-line me-2 text-secondary"></i>Model Accuracy</h5>
       </div>
-      <dl class="row mb-0 small">
-        <dt class="col-sm-5">Algorithm</dt>
-        <dd class="col-sm-7">{{ model_info.algorithm }}</dd>
-        {% if model_info.metrics %}
-        <dt class="col-sm-5">R² Score</dt>
-        <dd class="col-sm-7"><span class="badge bg-primary">{{ model_info.metrics.r2 }}</span></dd>
-        <dt class="col-sm-5">RMSE</dt>
-        <dd class="col-sm-7">{{ model_info.metrics.rmse }}</dd>
-        <dt class="col-sm-5">MAE</dt>
-        <dd class="col-sm-7">{{ model_info.metrics.mae }}</dd>
-        <dt class="col-sm-5">Train Samples</dt>
-        <dd class="col-sm-7">{{ model_info.metrics.training_samples }}</dd>
+      <div class="panel-body" style="padding:16px 20px;">
+        <div class="row g-2 text-center">
+          <div class="col-3">
+            <div style="font-size:18px;font-weight:800;color:var(--indigo);">{{ model_info.metrics.r2 }}</div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:600;">R² Score</div>
+          </div>
+          <div class="col-3">
+            <div style="font-size:18px;font-weight:800;color:var(--text-primary);">{{ model_info.metrics.rmse }}</div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:600;">RMSE</div>
+          </div>
+          <div class="col-3">
+            <div style="font-size:18px;font-weight:800;color:var(--text-primary);">{{ model_info.metrics.mae }}</div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:600;">MAE</div>
+          </div>
+          <div class="col-3">
+            <div style="font-size:18px;font-weight:800;color:var(--text-primary);">{{ model_info.metrics.training_samples }}</div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:600;">Samples</div>
+          </div>
+        </div>
+        {% if model_info.metrics.coefficients %}
+        <hr style="margin:14px 0;border-color:var(--border-soft);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;">Feature Weights</div>
+        <div class="d-flex flex-column gap-1">
+          <div class="impact-row" style="margin-bottom:0;">
+            <span class="impact-name">Attendance</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" style="width:{{ model_info.metrics.coefficients.attendance|floatformat:0 }}%;background:#10b981;max-width:100%;"></div></div>
+            <span class="impact-pct" style="color:#10b981;">{{ model_info.metrics.coefficients.attendance }}</span>
+          </div>
+          <div class="impact-row" style="margin-bottom:0;">
+            <span class="impact-name">Midterm</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" style="width:{{ model_info.metrics.coefficients.midterm|floatformat:0 }}%;background:#3b82f6;max-width:100%;"></div></div>
+            <span class="impact-pct" style="color:#3b82f6;">{{ model_info.metrics.coefficients.midterm }}</span>
+          </div>
+          <div class="impact-row" style="margin-bottom:0;">
+            <span class="impact-name">GPA</span>
+            <div class="impact-bar-track"><div class="impact-bar-fill" style="width:{{ model_info.metrics.coefficients.previous_gpa|floatformat:0 }}%;background:#f59e0b;max-width:100%;"></div></div>
+            <span class="impact-pct" style="color:#f59e0b;">{{ model_info.metrics.coefficients.previous_gpa }}</span>
+          </div>
+        </div>
         {% endif %}
-      </dl>
+      </div>
     </div>
     {% endif %}
   </div>
 
-  <!-- Result -->
-  <div class="col-12 col-lg-7">
-    {% if prediction %}
-    <div class="prediction-result-card">
-      <div class="text-center mb-4">
-        <h3 class="text-muted mb-1">Predicted Final Score</h3>
-        <div class="prediction-big-score {% if prediction.risk_level == 'at_risk' %}danger{% elif prediction.risk_level == 'borderline' %}warning{% else %}success{% endif %}">
-          {{ prediction.predicted_final }}
-        </div>
-        <div class="mt-3">
-          <span class="badge risk-{{ prediction.risk_level }} fs-5 px-4 py-2">
-            {{ prediction.risk_label }}
-          </span>
-        </div>
-      </div>
+  <!-- Right: Result Panel -->
+  <div id="resultArea">
 
-      <div class="row g-3 mb-4">
-        <div class="col-4">
-          <div class="result-metric">
-            <div class="result-metric-value">{{ prediction.predicted_total_score }}</div>
-            <div class="result-metric-label">Predicted Total</div>
+    <!-- Idle state -->
+    <div id="idleState" class="panel-card">
+      <div style="text-align:center;padding:52px 32px;">
+        <div style="font-size:64px;margin-bottom:16px;">🎯</div>
+        <h3 style="font-weight:800;font-size:20px;color:var(--text-primary);">Ready to Predict</h3>
+        <p style="color:var(--text-muted);font-size:13.5px;max-width:340px;margin:0 auto 24px;">
+          Adjust the sliders on the left to match your situation, then hit <strong>Predict My Score</strong>.
+        </p>
+        <div class="row g-3" style="max-width:400px;margin:0 auto;">
+          <div class="col-4">
+            <div style="background:rgba(16,185,129,.08);border-radius:10px;padding:12px;border:1px solid rgba(16,185,129,.15);">
+              <div style="font-size:22px;">📅</div>
+              <div style="font-size:11px;color:#059669;font-weight:700;margin-top:6px;">Attendance</div>
+              <div style="font-size:10px;color:var(--text-muted);">20% of total</div>
+            </div>
           </div>
-        </div>
-        <div class="col-4">
-          <div class="result-metric">
-            <div class="result-metric-value">{{ prediction.input.attendance }}%</div>
-            <div class="result-metric-label">Attendance</div>
+          <div class="col-4">
+            <div style="background:rgba(59,130,246,.08);border-radius:10px;padding:12px;border:1px solid rgba(59,130,246,.15);">
+              <div style="font-size:22px;">📝</div>
+              <div style="font-size:11px;color:#2563eb;font-weight:700;margin-top:6px;">Midterm</div>
+              <div style="font-size:10px;color:var(--text-muted);">30% of total</div>
+            </div>
           </div>
-        </div>
-        <div class="col-4">
-          <div class="result-metric">
-            <div class="result-metric-value">{{ prediction.input.midterm }}</div>
-            <div class="result-metric-label">Midterm</div>
+          <div class="col-4">
+            <div style="background:rgba(99,102,241,.08);border-radius:10px;padding:12px;border:1px solid rgba(99,102,241,.15);">
+              <div style="font-size:22px;">🏁</div>
+              <div style="font-size:11px;color:var(--indigo);font-weight:700;margin-top:6px;">Final</div>
+              <div style="font-size:10px;color:var(--text-muted);">50% of total</div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Risk Explanation -->
-      <div class="alert {% if prediction.risk_level == 'at_risk' %}alert-danger{% elif prediction.risk_level == 'borderline' %}alert-warning{% else %}alert-success{% endif %}">
-        {% if prediction.risk_level == 'at_risk' %}
-        <strong>⚠️ At Risk:</strong> Predicted final score below 50. Immediate action required —
-        increase attendance, seek extra help, and focus on final exam preparation.
-        {% elif prediction.risk_level == 'borderline' %}
-        <strong>⚡ Borderline:</strong> Predicted final between 50–70. There's room for improvement.
-        Consistent study habits and attendance can push you to the next level.
-        {% else %}
-        <strong>✅ On Track:</strong> Predicted final score looks good! Keep up the attendance and
-        study consistency to maintain or improve your performance.
-        {% endif %}
-      </div>
-
-      <canvas id="predChart" height="100"></canvas>
-    </div>
-    {% else %}
-    <div class="empty-state">
-      <div class="empty-state-icon">🤖</div>
-      <h3>Enter Parameters</h3>
-      <p class="text-muted">Adjust the sliders on the left and click <strong>Predict Performance</strong>
-      to get an AI-powered prediction of your final exam score.</p>
-      <div class="mt-3">
-        <div class="d-flex justify-content-center gap-4 text-muted small">
-          <div><i class="bi bi-calendar-check text-success me-1"></i>Attendance impact: 20%</div>
-          <div><i class="bi bi-pencil-square text-info me-1"></i>Midterm impact: 30%</div>
-          <div><i class="bi bi-award text-warning me-1"></i>GPA factor</div>
         </div>
       </div>
     </div>
-    {% endif %}
+
+    <!-- Result state (hidden until prediction) -->
+    <div id="resultState" style="display:none;">
+
+      <!-- Hero result card -->
+      <div class="panel-card mb-4">
+        <div class="result-hero">
+          <!-- Gauge -->
+          <div class="gauge-wrap">
+            <canvas id="gaugeCanvas" width="220" height="120"></canvas>
+            <div class="gauge-text">
+              <div class="gauge-score" id="gaugeScore">—</div>
+              <div class="gauge-label">Predicted Final</div>
+            </div>
+          </div>
+
+          <div class="letter-grade grade-B mt-3" id="letterGrade">B</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;" id="gradeDesc">Good performance</div>
+          <div class="risk-banner risk-safe mx-auto" style="max-width:320px;" id="riskBanner">
+            <i class="bi bi-check-circle-fill"></i>
+            <span id="riskText">On Track — Keep it up!</span>
+          </div>
+        </div>
+
+        <!-- Score Breakdown -->
+        <div>
+          <div class="breakdown-row">
+            <span class="breakdown-label"><i class="bi bi-pencil-square" style="color:#3b82f6;"></i> Midterm Score</span>
+            <div class="text-end">
+              <div class="breakdown-val" id="bdMidterm">—</div>
+              <div class="breakdown-contribution" id="bdMidtermContrib">— pts</div>
+            </div>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label"><i class="bi bi-cpu" style="color:var(--indigo);"></i> Predicted Final</span>
+            <div class="text-end">
+              <div class="breakdown-val" id="bdFinal">—</div>
+              <div class="breakdown-contribution" id="bdFinalContrib">— pts</div>
+            </div>
+          </div>
+          <div class="breakdown-row">
+            <span class="breakdown-label"><i class="bi bi-calendar-check" style="color:#10b981;"></i> Attendance</span>
+            <div class="text-end">
+              <div class="breakdown-val" id="bdAtt">—</div>
+              <div class="breakdown-contribution" id="bdAttContrib">— pts</div>
+            </div>
+          </div>
+          <div class="breakdown-row breakdown-total">
+            <span class="breakdown-label"><i class="bi bi-trophy-fill" style="color:#f59e0b;"></i> Total Score</span>
+            <div class="breakdown-val" id="bdTotal" style="color:var(--indigo);">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart + Tips row -->
+      <div class="row g-4">
+        <div class="col-12 col-xl-7">
+          <div class="panel-card">
+            <div class="panel-header"><h5><i class="bi bi-bar-chart-fill me-2" style="color:var(--indigo);"></i>Score Breakdown Chart</h5></div>
+            <div class="panel-body">
+              <canvas id="predChart" height="150"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-5">
+          <div class="panel-card h-100">
+            <div class="panel-header"><h5><i class="bi bi-lightbulb-fill me-2" style="color:#f59e0b;"></i>Recommendations</h5></div>
+            <div class="panel-body" id="tipsPanel"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What-if table -->
+      <div class="panel-card mt-4">
+        <div class="panel-header"><h5><i class="bi bi-table me-2" style="color:#10b981;"></i>What-if Scenarios</h5></div>
+        <div style="overflow-x:auto;">
+          <table class="table whatif-table mb-0">
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Attendance</th>
+                <th>Midterm</th>
+                <th>GPA</th>
+                <th>Pred. Final</th>
+                <th>Total Score</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody id="whatifBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /resultState -->
   </div>
-</div>
+
+</div><!-- /predictor-grid -->
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
-{% if prediction %}
+{% if model_info.is_trained %}
 <script>
-new Chart(document.getElementById('predChart'), {
-  type: 'bar',
-  data: {
-    labels: ['Attendance (Input)', 'Midterm (Input)', 'Predicted Final', 'Predicted Total'],
-    datasets: [{
-      label: 'Score',
-      data: [
-        {{ prediction.input.attendance }},
-        {{ prediction.input.midterm }},
-        {{ prediction.predicted_final }},
-        {{ prediction.predicted_total_score }}
-      ],
-      backgroundColor: [
-        'rgba(16,185,129,0.7)',
-        'rgba(59,130,246,0.7)',
-        '{% if prediction.risk_level == "at_risk" %}rgba(239,68,68,0.7){% elif prediction.risk_level == "borderline" %}rgba(245,158,11,0.7){% else %}rgba(16,185,129,0.7){% endif %}',
-        'rgba(139,92,246,0.7)',
-      ],
-      borderRadius: 6,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } },
-      x: { grid: { display: false } }
-    }
+/* ── Prediction API call ───────────────────────────────────────── */
+const PREDICT_URL = "{% url 'dashboard:predict' %}";
+const CSRF = "{{ csrf_token }}";
+
+let predChart = null;
+const gaugeCanvas = document.getElementById('gaugeCanvas');
+const gCtx = gaugeCanvas ? gaugeCanvas.getContext('2d') : null;
+
+/* slider → display */
+function bind(rangeId, valId, fmt) {
+  const r = document.getElementById(rangeId);
+  const v = document.getElementById(valId);
+  if (!r) return;
+  r.addEventListener('input', () => { v.textContent = fmt(r.value); });
+}
+bind('attRange', 'attVal', v => Math.round(v));
+bind('midRange', 'midVal', v => parseFloat(v).toFixed(1));
+bind('gpaRange', 'gpaVal', v => parseFloat(v).toFixed(1));
+
+function resetSliders() {
+  document.getElementById('attRange').value = 75;
+  document.getElementById('midRange').value = 60;
+  document.getElementById('gpaRange').value = 2.5;
+  document.getElementById('attVal').textContent = '75';
+  document.getElementById('midVal').textContent = '60.0';
+  document.getElementById('gpaVal').textContent = '2.5';
+}
+
+/* ── Score → letter ──────────────────────────────────────────── */
+function scoreToLetter(s) {
+  if (s >= 90) return 'A';
+  if (s >= 80) return 'B';
+  if (s >= 70) return 'C';
+  if (s >= 60) return 'D';
+  return 'F';
+}
+function letterDesc(l) {
+  return {A:'Excellent performance!',B:'Good performance',C:'Average performance',D:'Below average — needs improvement',F:'Failing — urgent action needed'}[l];
+}
+function gradeClass(l) {
+  return 'grade-'+l;
+}
+function scoreColor(s) {
+  if (s >= 70) return '#10b981';
+  if (s >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+/* ── Gauge drawing ───────────────────────────────────────────── */
+function drawGauge(score) {
+  if (!gCtx) return;
+  const w = 220, h = 120;
+  gCtx.clearRect(0, 0, w, h);
+  const cx = w / 2, cy = h - 10, r = 90;
+  const startA = Math.PI, endA = 2 * Math.PI;
+
+  // Track
+  gCtx.beginPath();
+  gCtx.arc(cx, cy, r, startA, endA);
+  gCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border') || '#e2e8f0';
+  gCtx.lineWidth = 14;
+  gCtx.lineCap = 'round';
+  gCtx.stroke();
+
+  // Fill
+  const pct = Math.max(0, Math.min(1, score / 100));
+  const fillEnd = startA + pct * Math.PI;
+  const color = scoreColor(score);
+  gCtx.beginPath();
+  gCtx.arc(cx, cy, r, startA, fillEnd);
+  gCtx.strokeStyle = color;
+  gCtx.lineWidth = 14;
+  gCtx.lineCap = 'round';
+  gCtx.stroke();
+
+  // Tick marks
+  for (let i = 0; i <= 10; i++) {
+    const a = startA + (i / 10) * Math.PI;
+    const x1 = cx + (r - 20) * Math.cos(a), y1 = cy + (r - 20) * Math.sin(a);
+    const x2 = cx + (r - 26) * Math.cos(a), y2 = cy + (r - 26) * Math.sin(a);
+    gCtx.beginPath(); gCtx.moveTo(x1, y1); gCtx.lineTo(x2, y2);
+    gCtx.strokeStyle = 'rgba(148,163,184,.3)'; gCtx.lineWidth = 1.5; gCtx.stroke();
   }
-});
+}
+
+/* ── Run prediction ──────────────────────────────────────────── */
+async function runPrediction() {
+  const att = parseFloat(document.getElementById('attRange').value);
+  const mid = parseFloat(document.getElementById('midRange').value);
+  const gpa = parseFloat(document.getElementById('gpaRange').value);
+
+  const btn = document.querySelector('button[onclick="runPrediction()"]');
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Predicting...';
+  btn.disabled = true;
+
+  try {
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('attendance', att);
+    fd.append('midterm', mid);
+    fd.append('previous_gpa', gpa);
+    fd.append('ajax', '1');
+
+    const res = await fetch(PREDICT_URL, { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (data.error) { alert('Error: ' + data.error); return; }
+    renderResult(data, att, mid, gpa);
+  } catch (e) {
+    alert('Prediction failed: ' + e.message);
+  } finally {
+    btn.innerHTML = '<i class="bi bi-cpu me-2"></i>Predict My Score';
+    btn.disabled = false;
+  }
+}
+
+function renderResult(p, att, mid, gpa) {
+  document.getElementById('idleState').style.display = 'none';
+  document.getElementById('resultState').style.display = 'block';
+
+  const fin = p.predicted_final;
+  const total = p.predicted_total_score;
+  const letter = scoreToLetter(total);
+  const color = scoreColor(fin);
+
+  /* Gauge */
+  drawGauge(fin);
+  const gs = document.getElementById('gaugeScore');
+  gs.textContent = fin;
+  gs.style.color = color;
+
+  /* Letter grade */
+  const lg = document.getElementById('letterGrade');
+  lg.textContent = letter;
+  lg.className = 'letter-grade ' + gradeClass(letter) + ' mt-3';
+  document.getElementById('gradeDesc').textContent = letterDesc(letter);
+
+  /* Risk banner */
+  const rb = document.getElementById('riskBanner');
+  const rt = document.getElementById('riskText');
+  rb.className = 'risk-banner risk-' + p.risk_level + ' mx-auto';
+  rb.style.maxWidth = '320px';
+  const riskMessages = {
+    safe: '✅ On Track — Keep up the great work!',
+    borderline: '⚡ Borderline — Push harder to level up',
+    at_risk: '⚠️ At Risk — Immediate action needed!'
+  };
+  rt.textContent = riskMessages[p.risk_level] || '';
+
+  /* Score breakdown */
+  const midContrib = (mid * 0.3).toFixed(1);
+  const finContrib = (fin * 0.5).toFixed(1);
+  const attContrib = (att * 0.2).toFixed(1);
+  document.getElementById('bdMidterm').textContent = mid;
+  document.getElementById('bdMidtermContrib').textContent = midContrib + ' pts (×0.3)';
+  document.getElementById('bdFinal').textContent = fin;
+  document.getElementById('bdFinalContrib').textContent = finContrib + ' pts (×0.5)';
+  document.getElementById('bdAtt').textContent = att + '%';
+  document.getElementById('bdAttContrib').textContent = attContrib + ' pts (×0.2)';
+  document.getElementById('bdTotal').textContent = total;
+
+  /* Bar chart */
+  if (predChart) predChart.destroy();
+  predChart = new Chart(document.getElementById('predChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Attendance\n(Input)', 'Midterm\n(Input)', 'Predicted\nFinal', 'Total\nScore'],
+      datasets: [{
+        data: [att, mid, fin, total],
+        backgroundColor: ['rgba(16,185,129,.7)', 'rgba(59,130,246,.7)', color.replace(')', ',.7)').replace('rgb', 'rgba'), 'rgba(139,92,246,.7)'],
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, animation: { duration: 600 },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' Score: ' + ctx.parsed.y } }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(148,163,184,.15)' }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  /* Tips */
+  const tips = [];
+  if (att < 75) tips.push({ cls: 'danger', icon: 'bi-calendar-x-fill', text: 'Your attendance is below 75%. Each missed class lowers your total by 0.2 pts. Attend every session.' });
+  if (mid < 50) tips.push({ cls: 'danger', icon: 'bi-exclamation-triangle-fill', text: 'Midterm score is below 50. This is a major drag on your total. Seek extra tutoring immediately.' });
+  if (p.risk_level === 'at_risk') tips.push({ cls: 'danger', icon: 'bi-fire', text: 'You are predicted to fail the final. Talk to your teacher about a study plan now.' });
+  if (att >= 90) tips.push({ cls: 'success', icon: 'bi-calendar-check-fill', text: 'Excellent attendance! You are maximising your attendance contribution of 20%.' });
+  if (mid >= 80) tips.push({ cls: 'success', icon: 'bi-star-fill', text: 'Great midterm score. Keep this momentum going into the final exam.' });
+  if (p.risk_level === 'safe' && total >= 80) tips.push({ cls: 'success', icon: 'bi-trophy-fill', text: 'You\'re on track for a top grade. Consistent effort will get you to an A!' });
+  if (fin < 70 && fin >= 50) tips.push({ cls: 'warning', icon: 'bi-lightbulb-fill', text: 'Improving your final exam score by 10 pts would significantly boost your total. Focus on past papers.' });
+  if (!tips.length) tips.push({ cls: 'success', icon: 'bi-check-circle-fill', text: 'Your inputs look balanced. Keep consistency in all areas to hit your target.' });
+
+  document.getElementById('tipsPanel').innerHTML = tips.map(t =>
+    `<div class="tip-item tip-${t.cls}"><i class="bi ${t.icon} text-${t.cls === 'success' ? 'success' : t.cls === 'warning' ? 'warning' : 'danger'}" style="font-size:14px;margin-top:1px;"></i><span>${t.text}</span></div>`
+  ).join('');
+
+  /* What-if table */
+  const scenarios = [
+    { label: 'Current', att, mid, gpa },
+    { label: '🔝 Max Attendance', att: 100, mid, gpa },
+    { label: '📝 +10 Midterm', att, mid: Math.min(100, mid + 10), gpa },
+    { label: '🎯 Best Case', att: 100, mid: Math.min(100, mid + 10), gpa: Math.min(4, gpa + 0.5) },
+    { label: '📉 Worst Case', att: Math.max(0, att - 20), mid: Math.max(0, mid - 15), gpa },
+  ];
+
+  document.getElementById('whatifBody').innerHTML = scenarios.map(s => {
+    const wFin = simulateFinal(s.att, s.mid, s.gpa, p);
+    const wTotal = parseFloat((s.mid * 0.3 + wFin * 0.5 + s.att * 0.2).toFixed(1));
+    const wLetter = scoreToLetter(wTotal);
+    const wColor = scoreColor(wFin);
+    const isActive = s.att === att && s.mid === mid ? 'font-weight:600;background:var(--surface-2);' : '';
+    return `<tr style="${isActive}">
+      <td style="font-weight:600;">${s.label}</td>
+      <td>${s.att}%</td><td>${s.mid}</td><td>${parseFloat(s.gpa).toFixed(1)}</td>
+      <td style="color:${wColor};font-weight:700;">${wFin}</td>
+      <td style="font-weight:700;">${wTotal}</td>
+      <td><span class="badge" style="background:${wColor}20;color:${wColor};border:1px solid ${wColor}40;font-size:12px;padding:3px 8px;">${wLetter}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function simulateFinal(att, mid, gpa, basePrediction) {
+  /* Linear approximation: scale the prediction proportionally */
+  const baseAtt = parseFloat(document.getElementById('attRange').value);
+  const baseMid = parseFloat(document.getElementById('midRange').value);
+  const baseGpa = parseFloat(document.getElementById('gpaRange').value);
+  const baseFin = basePrediction.predicted_final;
+  /* Simple weighted delta estimate */
+  const delta = (att - baseAtt) * 0.15 + (mid - baseMid) * 0.45 + (gpa - baseGpa) * 5;
+  return Math.round(Math.max(0, Math.min(100, baseFin + delta)) * 10) / 10;
+}
+
+// Pre-fill from server-side prefill if available
+{% if prefill %}
+document.getElementById('attRange').value = {{ prefill.attendance|default:75 }};
+document.getElementById('midRange').value = {{ prefill.midterm|default:60 }};
+document.getElementById('gpaRange').value = {{ prefill.previous_gpa|default:2.5 }};
+document.getElementById('attVal').textContent = {{ prefill.attendance|default:75 }};
+document.getElementById('midVal').textContent = parseFloat('{{ prefill.midterm|default:60 }}').toFixed(1);
+document.getElementById('gpaVal').textContent = parseFloat('{{ prefill.previous_gpa|default:2.5 }}').toFixed(1);
+{% endif %}
+
+// Auto-run if prefilled
+{% if prediction %}
+renderResult({{ prediction|safe }}, {{ prediction.input.attendance }}, {{ prediction.input.midterm }}, {{ prediction.input.previous_gpa }});
+{% endif %}
 </script>
 {% endif %}
 {% endblock %}

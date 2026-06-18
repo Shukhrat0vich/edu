@@ -1,6 +1,7 @@
 """ML Service views — prediction endpoint and model info."""
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 
@@ -16,7 +17,7 @@ class PredictionView(View):
         model_info = grade_predictor.get_model_info()
         context = {'model_info': model_info, 'prediction': None}
 
-        # Prefill for students
+        # Prefill for students using their actual grade data
         if request.user.is_student:
             try:
                 student = request.user.student_profile
@@ -37,8 +38,8 @@ class PredictionView(View):
         return render(request, self.template_name, context)
 
     def post(self, request):
+        is_ajax = request.POST.get('ajax') == '1'
         model_info = grade_predictor.get_model_info()
-        context = {'model_info': model_info}
 
         try:
             attendance = float(request.POST.get('attendance', 0))
@@ -46,16 +47,28 @@ class PredictionView(View):
             previous_gpa = float(request.POST.get('previous_gpa', 2.5))
 
             if not grade_predictor.is_ready():
-                context['error'] = 'ML model not trained yet. Contact administrator.'
-            else:
-                result = grade_predictor.predict(attendance, midterm, previous_gpa)
-                context['prediction'] = result
-                context['prefill'] = {
+                if is_ajax:
+                    return JsonResponse({'error': 'ML model not trained yet.'}, status=400)
+                context = {'model_info': model_info, 'error': 'ML model not trained yet.'}
+                return render(request, self.template_name, context)
+
+            result = grade_predictor.predict(attendance, midterm, previous_gpa)
+
+            if is_ajax:
+                return JsonResponse(result)
+
+            context = {
+                'model_info': model_info,
+                'prediction': result,
+                'prefill': {
                     'attendance': attendance,
                     'midterm': midterm,
                     'previous_gpa': previous_gpa,
-                }
+                },
+            }
         except ValueError as e:
-            context['error'] = f'Invalid input: {e}'
+            if is_ajax:
+                return JsonResponse({'error': str(e)}, status=400)
+            context = {'model_info': model_info, 'error': f'Invalid input: {e}'}
 
         return render(request, self.template_name, context)
