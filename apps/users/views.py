@@ -95,15 +95,35 @@ class ProfileView(View):
         return render(request, self.template_name, context)
 
     def post(self, request):
-
         user = request.user
+        action = request.POST.get("action", "profile")
 
+        if action == "password":
+            current = request.POST.get("current_password", "")
+            new_pw  = request.POST.get("new_password", "")
+            confirm = request.POST.get("confirm_password", "")
+
+            if not user.check_password(current):
+                messages.error(request, "Current password is incorrect.")
+                return redirect("users:profile")
+            if len(new_pw) < 6:
+                messages.error(request, "New password must be at least 6 characters.")
+                return redirect("users:profile")
+            if new_pw != confirm:
+                messages.error(request, "New passwords do not match.")
+                return redirect("users:profile")
+
+            user.set_password(new_pw)
+            user.save()
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, user)
+            messages.success(request, "Password changed successfully.")
+            return redirect("users:profile")
+
+        # Default: update profile info
         full_name = request.POST.get("full_name", "").strip()
-
         if full_name:
             user.full_name = full_name
             user.save(update_fields=["full_name"])
-
         messages.success(request, "Profile updated successfully.")
-
         return redirect("users:profile")
